@@ -37,3 +37,6 @@
 [submodule "corev_apu/tb/common_verification"]
 	path = corev_apu/tb/common_verification
 	url = https://github.com/pulp-platform/common_verification.git
+[submodule "vendor/planv/ace"]
+	path = vendor/planv/ace
+	url = https://github.com/planvtech/ace.git
