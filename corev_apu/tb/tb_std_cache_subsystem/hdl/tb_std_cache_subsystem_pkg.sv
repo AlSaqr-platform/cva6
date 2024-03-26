@@ -1485,7 +1485,7 @@ package tb_std_cache_subsystem_pkg;
                         $error("%s: Cache mismatch index %h tag %h way %0h - tag: expected %h, actual %h", {name,".",origin}, idx_v, tag_v, w, cache_status[mem_idx_v][w].tag, sram_vif.tag_sram[w][mem_idx_v]);
 
                     a_data : assert (cache_status[mem_idx_v][w].data == sram_vif.data_sram[w][mem_idx_v]) else
-                        $error("%s: Cache mismatch index %h tag %h way %h - data: expected 0x%16h_%16h, actual 0x%16h_%16h", {name,".",origin}, idx_v, tag_v, way, cache_status[mem_idx_v][way].data[127:64], cache_status[mem_idx_v][way].data[63:0], sram_vif.data_sram[way][mem_idx_v][127:64], sram_vif.data_sram[way][mem_idx_v][63:0]);
+                        $error("%s: Cache mismatch index %h tag %h way %h - data: expected 0x%16h_%16h, actual 0x%16h_%16h", {name,".",origin}, idx_v, tag_v, w, cache_status[mem_idx_v][w].data[127:64], cache_status[mem_idx_v][w].data[63:0], sram_vif.data_sram[w][mem_idx_v][127:64], sram_vif.data_sram[w][mem_idx_v][63:0]);
 
                 end else begin
                     a_valid : assert (!vld_sram_valid) else
