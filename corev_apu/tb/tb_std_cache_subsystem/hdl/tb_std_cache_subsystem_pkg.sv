@@ -1194,7 +1194,7 @@ package tb_std_cache_subsystem_pkg;
 
         // Cache model
         cache_line_t [DCACHE_NUM_WORDS-1:0][DCACHE_SET_ASSOC-1:0] cache_status;
-        logic                              [DCACHE_SET_ASSOC-1:0] lfsr;
+        logic                              [7:0] lfsr;
 
         int cache_msg_timeout  =  1500;
         int snoop_msg_timeout  =  1000;
