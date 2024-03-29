@@ -39,7 +39,10 @@ module ace_ccu_top
   parameter type mst_stg_req_t     = logic,
   parameter type mst_stg_resp_t    = logic,
   parameter type snoop_req_t       = logic,
-  parameter type snoop_resp_t      = logic
+  parameter type snoop_resp_t      = logic,
+  parameter type ac_chan_t         = logic,
+  parameter type cr_chan_t         = logic,
+  parameter type cd_chan_t         = logic
 
 ) (
   input  logic                             clk_i,
@@ -57,9 +60,9 @@ module ace_ccu_top
 slv_req_t  [Cfg.NoSlvPorts-1:0] [1:0]      slv_reqs;   // one for non-shareable and one for shareable req
 slv_resp_t [Cfg.NoSlvPorts-1:0] [1:0]      slv_resps;
 // signals into the ace_muxes
-mst_stg_req_t  [Cfg.NoSlvPorts:0]          mst_reqs;   // one extra port for CCU
-mst_stg_resp_t [Cfg.NoSlvPorts:0]          mst_resps;
-mst_stg_req_t  [Cfg.NoSlvPorts:0]          mst_reqs_tmp;
+mst_stg_req_t  [Cfg.NoSlvPorts*2-1:0]      mst_reqs;   // extra ports for CCU
+mst_stg_resp_t [Cfg.NoSlvPorts*2-1:0]      mst_resps;
+mst_stg_req_t  [Cfg.NoSlvPorts*2-1:0]      mst_reqs_tmp;
 // signals into the CCU
 slv_req_t  [Cfg.NoSlvPorts-1:0]            ccu_reqs_i;
 slv_resp_t [Cfg.NoSlvPorts-1:0]            ccu_resps_o;
@@ -171,7 +174,7 @@ always_comb begin
   mst_reqs[Cfg.NoSlvPorts].aw.user[$clog2(Cfg.NoSlvPorts)-1:0] = mst_reqs_tmp[Cfg.NoSlvPorts].aw.id[Cfg.AxiIdWidthSlvPorts +: $clog2(Cfg.NoSlvPorts)];
   mst_reqs[Cfg.NoSlvPorts].ar.user[$clog2(Cfg.NoSlvPorts)-1:0] = mst_reqs_tmp[Cfg.NoSlvPorts].ar.id[Cfg.AxiIdWidthSlvPorts +: $clog2(Cfg.NoSlvPorts)];
 end
-`ACE_ASSIGN_REQ_STRUCT(mst_reqs_tmp[Cfg.NoSlvPorts], ccu_reqs_o)
+`ACE_ASSIGN_REQ_STRUCT(mst_reqs_tmp[Cfg.NoSlvPorts], ccu_reqs_o[i])
 `ACE_ASSIGN_RESP_STRUCT(ccu_resps_i, mst_resps[Cfg.NoSlvPorts])
 
 // connection reqs and resps for shareable transactions with CCU
@@ -214,26 +217,61 @@ axi_mux #(
   .mst_resp_i  ( ccu_resps_mux_i  )
 );
 
-ccu_fsm #(
-    .DcacheLineWidth ( Cfg.DcacheLineWidth    ),
-    .AxiDataWidth    ( Cfg.AxiDataWidth       ),
-    .NoMstPorts      ( Cfg.NoSlvPorts         ),
-    .SlvAxiIDWidth   ( Cfg.AxiIdWidthSlvPorts ), // ID width of the slave ports
-    .mst_req_t       ( mst_stg_req_t          ),
-    .mst_resp_t      ( mst_stg_resp_t         ),
-    .snoop_req_t     ( snoop_req_t            ),
-    .snoop_resp_t    ( snoop_resp_t           )
-
-) fsm (
-    .clk_i,
-    .rst_ni,
-    .ccu_req_i       ( ccu_reqs_mux_o     ),
-    .ccu_resp_o      ( ccu_resps_mux_i    ),
-    .ccu_req_o       ( ccu_reqs_o         ),
-    .ccu_resp_i      ( ccu_resps_i        ),
-    .s2m_req_o       ( slv_snp_req_o      ),
-    .m2s_resp_i      ( slv_snp_resp_i     )
+ccu_dispatch #(
+  .DcacheLineWidth ( Cfg.DcacheLineWidth    ),
+  .AxiDataWidth    ( Cfg.AxiDataWidth       ),
+  .NoMstPorts      ( Cfg.NoSlvPorts         ),
+  .SlvAxiIDWidth   ( Cfg.AxiIdWidthSlvPorts ), // ID width of the slave ports
+  .mst_req_t       ( mst_stg_req_t          ),
+  .mst_resp_t      ( mst_stg_resp_t         )
+) i_ccu_dispatch (
+  .clk_i,
+  .rst_ni,
+  .slv_req_i   ( mst_reqs_mux  ),
+  .slv_resp_o  ( mst_resps_mux ),
+  .mst_reqs_o  ( mst_reqs_ccu  ),
+  .mst_resps_i ( mst_resps_ccu )
 );
+
+for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_ccu_fsm
+   snoop_req_t  [Cfg.NoSlvPorts-1:0] slv_snp_req ;
+   snoop_resp_t [Cfg.NoSlvPorts-1:0] slv_snp_resp;
+
+   ccu_fsm #(
+       .DcacheLineWidth ( Cfg.DcacheLineWidth    ),
+       .AxiDataWidth    ( Cfg.AxiDataWidth       ),
+       .NoMstPorts      ( Cfg.NoSlvPorts         ),
+       .SlvAxiIDWidth   ( Cfg.AxiIdWidthSlvPorts ), // ID width of the slave ports
+       .mst_req_t       ( mst_stg_req_t          ),
+       .mst_resp_t      ( mst_stg_resp_t         ),
+       .snoop_req_t     ( snoop_req_t            ),
+       .snoop_resp_t    ( snoop_resp_t           )
+   ) fsm (
+       .clk_i,
+       .rst_ni,
+       .ccu_req_i       ( ccu_reqs_ccu[i]    ),
+       .ccu_resp_o      ( ccu_resps_ccu[i]   ),
+       .ccu_req_o       ( ccu_reqs_o[i]      ),
+       .ccu_resp_i      ( ccu_resps_i[i]     ),
+       .s2m_req_o       ( slv_snp_req        ),
+       .m2s_resp_i      ( slv_snp_resp       )
+   );
+   snoop_mux #(
+     .snoop_req_t  ( snoop_req_t    ),
+     .snoop_resp_t ( snoop_resp_t   ),
+     .ac_chan_t    ( ac_chan_t      ),
+     .cr_chan_t    ( cr_chan_t      ),
+     .cd_chan_t    ( cd_chan_t      ),
+     .NoSlvPorts   ( Cfg.NoSlvPorts )
+   ) i_snoop_mux (
+       .clk_i,
+       .rst_ni,
+       .slv_reqs_i   ( slv_snp_req       ),
+       .slv_snp_resp ( slv_snp_resp      ),
+       .mst_req_o    ( slv_snp_resp_o[i] ),
+       .mst_resp_i   ( slv_snp_resp_i[i] )
+   );
+end // block: gen_ccu_fsm
 
 endmodule
 
@@ -338,7 +376,10 @@ module ace_ccu_top_intf
     .mst_stg_req_t      ( mst_ace_stg_req_t     ),
     .mst_stg_resp_t     ( mst_ace_stg_resp_t    ),
     .snoop_req_t        ( snoop_req_t           ),
-    .snoop_resp_t       ( snoop_resp_t          )
+    .snoop_resp_t       ( snoop_resp_t          ),
+    .ac_chan_t          ( snoop_ac_t            ),
+    .cr_chan_t          ( snoop_cr_t            ),
+    .cd_chan_t          ( snoop_cd_t            )
   ) i_ccu_top (
     .clk_i,
     .rst_ni,
