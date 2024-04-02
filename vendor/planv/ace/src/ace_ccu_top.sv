@@ -117,34 +117,34 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_slv_port_demux
 end
 
 axi_mux #(
-  .SlvAxiIDWidth ( Cfg.AxiIdWidthSlvPorts+$clog2(Cfg.NoSlvPorts) ), // ID width of the slave ports
-  .slv_aw_chan_t ( slv_aw_chan_t                                 ), // AW Channel Type, slave ports
-  .mst_aw_chan_t ( mst_aw_chan_t                                 ), // AW Channel Type, master port
-  .w_chan_t      ( w_chan_t                                      ), //  W Channel Type, all ports
-  .slv_b_chan_t  ( slv_b_chan_t                                  ), //  B Channel Type, slave ports
-  .mst_b_chan_t  ( mst_b_chan_t                                  ), //  B Channel Type, master port
-  .slv_ar_chan_t ( slv_ar_chan_t                                 ), // AR Channel Type, slave ports
-  .mst_ar_chan_t ( mst_ar_chan_t                                 ), // AR Channel Type, master port
-  .slv_r_chan_t  ( slv_r_chan_t                                  ), //  R Channel Type, slave ports
-  .mst_r_chan_t  ( mst_r_chan_t                                  ), //  R Channel Type, master port
-  .slv_req_t     ( slv_req_t                                     ),
-  .slv_resp_t    ( slv_resp_t                                    ),
-  .mst_req_t     ( mst_req_t                                     ),
-  .mst_resp_t    ( mst_resp_t                                    ),
-  .NoSlvPorts    ( Cfg.NoSlvPorts * 2                            ), // Number of Masters for the modules
-  .MaxWTrans     ( Cfg.MaxMstTrans                               ),
-  .FallThrough   ( Cfg.FallThrough                               ),
-  .SpillAw       ( Cfg.LatencyMode[4]                            ),
-  .SpillW        ( Cfg.LatencyMode[3]                            ),
-  .SpillB        ( Cfg.LatencyMode[2]                            ),
-  .SpillAr       ( Cfg.LatencyMode[1]                            ),
-  .SpillR        ( Cfg.LatencyMode[0]                            )
+  .SlvAxiIDWidth ( Cfg.AxiIdWidthSlvPorts ), // ID width of the slave ports
+  .slv_aw_chan_t ( slv_aw_chan_t          ), // AW Channel Type, slave ports
+  .mst_aw_chan_t ( mst_aw_chan_t          ), // AW Channel Type, master port
+  .w_chan_t      ( w_chan_t               ), //  W Channel Type, all ports
+  .slv_b_chan_t  ( slv_b_chan_t           ), //  B Channel Type, slave ports
+  .mst_b_chan_t  ( mst_b_chan_t           ), //  B Channel Type, master port
+  .slv_ar_chan_t ( slv_ar_chan_t          ), // AR Channel Type, slave ports
+  .mst_ar_chan_t ( mst_ar_chan_t          ), // AR Channel Type, master port
+  .slv_r_chan_t  ( slv_r_chan_t           ), //  R Channel Type, slave ports
+  .mst_r_chan_t  ( mst_r_chan_t           ), //  R Channel Type, master port
+  .slv_req_t     ( slv_req_t              ),
+  .slv_resp_t    ( slv_resp_t             ),
+  .mst_req_t     ( mst_req_t              ),
+  .mst_resp_t    ( mst_resp_t             ),
+  .NoSlvPorts    ( Cfg.NoSlvPorts * 2     ), // Number of Masters for the modules
+  .MaxWTrans     ( Cfg.MaxMstTrans        ),
+  .FallThrough   ( Cfg.FallThrough        ),
+  .SpillAw       ( Cfg.LatencyMode[4]     ),
+  .SpillW        ( Cfg.LatencyMode[3]     ),
+  .SpillB        ( Cfg.LatencyMode[2]     ),
+  .SpillAr       ( Cfg.LatencyMode[1]     ),
+  .SpillR        ( Cfg.LatencyMode[0]     )
 ) i_axi_mux (
   .clk_i,   // Clock
   .rst_ni,  // Asynchronous reset active low
   .test_i,  // Test Mode enable
-  .slv_reqs_i  ( mst_reqs         ),
-  .slv_resps_o ( mst_resps        ),
+  .slv_reqs_i  ( out_reqs         ),
+  .slv_resps_o ( out_resps        ),
   .mst_req_o   ( mst_ports_req_o  ),
   .mst_resp_i  ( mst_ports_resp_i )
 );

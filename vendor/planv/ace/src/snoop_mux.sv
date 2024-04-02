@@ -120,7 +120,7 @@ module snoop_mux #(
 
     for (genvar i = 0; i < NoSlvPorts; i++) begin : gen_slv_req_bind
        assign slv_ac_valids[i] = slv_reqs_i[i].ac_valid;
-       assign slv_resps_o[i].ac_readies = slv_ac_readies[i];
+       assign slv_resps_o[i].ac_ready = slv_ac_readies[i];
        assign slv_ac_chans[i] = slv_reqs_i[i].ac;
     end
 
@@ -151,7 +151,7 @@ module snoop_mux #(
        lock_d = lock_q;
        if(ac_ready & ac_valid)
           lock_d = 1'b1;
-       else if(mst_req_o.cd_ready & mst_req_o.cd_valid)
+       else if(mst_resp_i.cd_valid & mst_req_o.cd_ready)
          lock_d = 1'b0;
     end
 
