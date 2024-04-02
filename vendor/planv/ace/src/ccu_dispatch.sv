@@ -14,9 +14,9 @@
 `include "ace/typedef.svh"
 module ccu_dispatch
   #(
-  parameter int  NoPorts Cfg = '0,
-  parameter type req_t       = logic,
-  parameter type resp_t      = logic
+  parameter int  NoPorts = '0,
+  parameter type req_t   = logic,
+  parameter type resp_t  = logic
 ) (
    input  logic                 clk_i,
    input  logic                 rst_ni,

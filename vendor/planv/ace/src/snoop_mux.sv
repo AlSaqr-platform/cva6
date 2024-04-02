@@ -58,8 +58,8 @@ module snoop_mux #(
       .data_o  ( mst_req_o.ac             )
     );
     spill_register #(
-      .T       ( mst_cr_chan_t ),
-      .Bypass  ( ~SpillCr      )
+      .T       ( cr_chan_t ),
+      .Bypass  ( ~SpillCr  )
     ) i_cr_spill_reg (
       .clk_i   ( clk_i                   ),
       .rst_ni  ( rst_ni                  ),
@@ -71,8 +71,8 @@ module snoop_mux #(
       .data_o  ( slv_resps_o[0].cr_resp  )
     );
     spill_register #(
-      .T       ( mst_cd_chan_t ),
-      .Bypass  ( ~SpillCd      )
+      .T       ( cd_chan_t ),
+      .Bypass  ( ~SpillCd  )
     ) i_cd_spill_reg (
       .clk_i   ( clk_i                   ),
       .rst_ni  ( rst_ni                  ),
@@ -104,21 +104,21 @@ module snoop_mux #(
     ac_chan_t     mst_ac_chan;
 
     logic                         ac_valid, ac_ready;
-    assign ac_ready = msr_resp_i.ac_ready & !lock_q;
+    assign ac_ready = mst_resp_i.ac_ready & !lock_q;
     assign mst_req_o.ac_valid = ac_valid;
     assign mst_req_o.ac = mst_ac_chan;
 
-    assign mst_req_o.cr_ready = slv_resps_i[id_inflight_d].cr_ready;
-    assign mst_req_o.cd_ready = slv_resps_i[id_inflight_d].cd_ready;
+    assign mst_req_o.cr_ready = slv_reqs_i[id_inflight_d].cr_ready;
+    assign mst_req_o.cd_ready = slv_reqs_i[id_inflight_d].cd_ready;
 
-    for (genvar i = 0; i < NoSlvPorts; i++) begin : gen_slv_port_bind
+    for (genvar i = 0; i < NoSlvPorts; i++) begin : gen_slv_resp_bind
        assign slv_resps_o[i].cr_valid = (lock_d & (i==id_inflight_d)) ? mst_resp_i.cr_valid : 1'b0;
        assign slv_resps_o[i].cr_resp = (lock_d & (i==id_inflight_d)) ? mst_resp_i.cr_resp : '0;
        assign slv_resps_o[i].cd_valid = (lock_d & (i==id_inflight_d)) ? mst_resp_i.cd_valid : 1'b0;
        assign slv_resps_o[i].cd = (lock_d & (i==id_inflight_d)) ? mst_resp_i.cd : '0;
     end
 
-    for (genvar i = 0; i < NoSlvPorts; i++) begin : gen_slv_port_bind
+    for (genvar i = 0; i < NoSlvPorts; i++) begin : gen_slv_req_bind
        assign slv_ac_valids[i] = slv_reqs_i[i].ac_valid;
        assign slv_resps_o[i].ac_readies = slv_ac_readies[i];
        assign slv_ac_chans[i] = slv_reqs_i[i].ac;
@@ -151,12 +151,12 @@ module snoop_mux #(
        lock_d = lock_q;
        if(ac_ready & ac_valid)
           lock_d = 1'b1;
-       else if(cd_ready & cd_valid)
+       else if(mst_req_o.cd_ready & mst_req_o.cd_valid)
          lock_d = 1'b0;
     end
 
-    `FFLARN(id_inflight_q, id_inflight_d, '0, clk_i, rst_ni)
-    `FFLARN(lock_d, lock_q, '0, clk_i, rst_ni)
+    `FF(id_inflight_q, id_inflight_d, '0, clk_i, rst_ni)
+    `FF(lock_q, lock_d, '0, clk_i, rst_ni)
 
   end
 

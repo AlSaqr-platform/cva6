@@ -118,27 +118,27 @@ end
 
 axi_mux #(
   .SlvAxiIDWidth ( Cfg.AxiIdWidthSlvPorts+$clog2(Cfg.NoSlvPorts) ), // ID width of the slave ports
-  .slv_aw_chan_t ( mst_stg_aw_chan_t      ), // AW Channel Type, slave ports
-  .mst_aw_chan_t ( mst_aw_chan_t          ), // AW Channel Type, master port
-  .w_chan_t      ( w_chan_t               ), //  W Channel Type, all ports
-  .slv_b_chan_t  ( mst_stg_b_chan_t       ), //  B Channel Type, slave ports
-  .mst_b_chan_t  ( mst_b_chan_t           ), //  B Channel Type, master port
-  .slv_ar_chan_t ( mst_stg_ar_chan_t      ), // AR Channel Type, slave ports
-  .mst_ar_chan_t ( mst_ar_chan_t          ), // AR Channel Type, master port
-  .slv_r_chan_t  ( mst_stg_r_chan_t       ), //  R Channel Type, slave ports
-  .mst_r_chan_t  ( mst_r_chan_t           ), //  R Channel Type, master port
-  .slv_req_t     ( mst_stg_req_t          ),
-  .slv_resp_t    ( mst_stg_resp_t         ),
-  .mst_req_t     ( mst_req_t              ),
-  .mst_resp_t    ( mst_resp_t             ),
-  .NoSlvPorts    ( Cfg.NoSlvPorts * 2     ), // Number of Masters for the modules
-  .MaxWTrans     ( Cfg.MaxMstTrans        ),
-  .FallThrough   ( Cfg.FallThrough        ),
-  .SpillAw       ( Cfg.LatencyMode[4]     ),
-  .SpillW        ( Cfg.LatencyMode[3]     ),
-  .SpillB        ( Cfg.LatencyMode[2]     ),
-  .SpillAr       ( Cfg.LatencyMode[1]     ),
-  .SpillR        ( Cfg.LatencyMode[0]     )
+  .slv_aw_chan_t ( slv_aw_chan_t                                 ), // AW Channel Type, slave ports
+  .mst_aw_chan_t ( mst_aw_chan_t                                 ), // AW Channel Type, master port
+  .w_chan_t      ( w_chan_t                                      ), //  W Channel Type, all ports
+  .slv_b_chan_t  ( slv_b_chan_t                                  ), //  B Channel Type, slave ports
+  .mst_b_chan_t  ( mst_b_chan_t                                  ), //  B Channel Type, master port
+  .slv_ar_chan_t ( slv_ar_chan_t                                 ), // AR Channel Type, slave ports
+  .mst_ar_chan_t ( mst_ar_chan_t                                 ), // AR Channel Type, master port
+  .slv_r_chan_t  ( slv_r_chan_t                                  ), //  R Channel Type, slave ports
+  .mst_r_chan_t  ( mst_r_chan_t                                  ), //  R Channel Type, master port
+  .slv_req_t     ( slv_req_t                                     ),
+  .slv_resp_t    ( slv_resp_t                                    ),
+  .mst_req_t     ( mst_req_t                                     ),
+  .mst_resp_t    ( mst_resp_t                                    ),
+  .NoSlvPorts    ( Cfg.NoSlvPorts * 2                            ), // Number of Masters for the modules
+  .MaxWTrans     ( Cfg.MaxMstTrans                               ),
+  .FallThrough   ( Cfg.FallThrough                               ),
+  .SpillAw       ( Cfg.LatencyMode[4]                            ),
+  .SpillW        ( Cfg.LatencyMode[3]                            ),
+  .SpillB        ( Cfg.LatencyMode[2]                            ),
+  .SpillAr       ( Cfg.LatencyMode[1]                            ),
+  .SpillR        ( Cfg.LatencyMode[0]                            )
 ) i_axi_mux (
   .clk_i,   // Clock
   .rst_ni,  // Asynchronous reset active low
@@ -184,8 +184,8 @@ ccu_dispatch #(
   .rst_ni,
   .core_req_i  ( cached_reqs  ),
   .core_resp_o ( cached_resps ),
-  .ccu_reqs_o  ( to_ccu_reqs  ),
-  .ccu_resps_i ( to_ccu_resps )
+  .ccu_req_o   ( to_ccu_reqs  ),
+  .ccu_resp_i  ( to_ccu_resps )
 );
 
 for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_ccu_fsm
@@ -197,8 +197,8 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_ccu_fsm
        .AxiDataWidth    ( Cfg.AxiDataWidth       ),
        .NoMstPorts      ( Cfg.NoSlvPorts         ),
        .SlvAxiIDWidth   ( Cfg.AxiIdWidthSlvPorts ), // ID width of the slave ports
-       .mst_req_t       ( mst_stg_req_t          ),
-       .mst_resp_t      ( mst_stg_resp_t         ),
+       .mst_req_t       ( slv_req_t              ),
+       .mst_resp_t      ( slv_resp_t             ),
        .snoop_req_t     ( snoop_req_t            ),
        .snoop_resp_t    ( snoop_resp_t           )
    ) fsm (
@@ -222,7 +222,7 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_ccu_fsm
        .clk_i,
        .rst_ni,
        .slv_reqs_i   ( slv_snp_req       ),
-       .slv_snp_resp ( slv_snp_resp      ),
+       .slv_resps_o  ( slv_snp_resp      ),
        .mst_req_o    ( slv_snp_req_o[i]  ),
        .mst_resp_i   ( slv_snp_resp_i[i] )
    );
@@ -316,8 +316,6 @@ module ace_ccu_top_intf
     .slv_resp_t         ( slv_ace_resp_t        ),
     .mst_req_t          ( mst_ace_req_t         ),
     .mst_resp_t         ( mst_ace_resp_t        ),
-    .mst_stg_req_t      ( mst_ace_stg_req_t     ),
-    .mst_stg_resp_t     ( mst_ace_stg_resp_t    ),
     .snoop_req_t        ( snoop_req_t           ),
     .snoop_resp_t       ( snoop_resp_t          ),
     .ac_chan_t          ( snoop_ac_t            ),
