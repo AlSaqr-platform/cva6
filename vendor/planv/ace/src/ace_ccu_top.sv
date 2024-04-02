@@ -188,9 +188,16 @@ ccu_dispatch #(
   .ccu_resp_i  ( to_ccu_resps )
 );
 
+snoop_req_t  [Cfg.NoSlvPorts*2-1:0] slv_snp_req ;
+snoop_resp_t [Cfg.NoSlvPorts*2-1:0] slv_snp_resp;
+
 for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_ccu_fsm
-   snoop_req_t  [Cfg.NoSlvPorts-1:0] slv_snp_req ;
-   snoop_resp_t [Cfg.NoSlvPorts-1:0] slv_snp_resp;
+   snoop_req_t  [Cfg.NoSlvPorts-1:0] ccu_snp_req ;
+   snoop_resp_t [Cfg.NoSlvPorts-1:0] ccu_snp_resp;
+   for (genvar j = 0; j < Cfg.NoSlvPorts; j++) begin : gen_transpose_mux
+      assign slv_snp_req[j+Cfg.NoSlvPorts*i] = ccu_snp_req[j];
+      assign ccu_snp_resp[j] = slv_snp_resp[j+Cfg.NoSlvPorts*i];
+   end
 
    ccu_fsm #(
        .DcacheLineWidth ( Cfg.DcacheLineWidth    ),
@@ -208,9 +215,20 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_ccu_fsm
        .ccu_resp_o      ( to_ccu_resps[i]    ),
        .ccu_req_o       ( fetch_ccu_reqs[i]  ),
        .ccu_resp_i      ( fetch_ccu_resps[i] ),
-       .s2m_req_o       ( slv_snp_req        ),
-       .m2s_resp_i      ( slv_snp_resp       )
+       .s2m_req_o       ( ccu_snp_req        ),
+       .m2s_resp_i      ( ccu_snp_resp       )
    );
+
+end // block: gen_ccu_fsm
+
+for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_snoop_mux
+   snoop_req_t  [Cfg.NoSlvPorts-1:0] ccu_snp_req ;
+   snoop_resp_t [Cfg.NoSlvPorts-1:0] ccu_snp_resp;
+   for (genvar j = 0; j < Cfg.NoSlvPorts; j++) begin : gen_transpose_mux
+      assign ccu_snp_req[j] = slv_snp_req[j*Cfg.NoSlvPorts+i];
+      assign slv_snp_resp[j*Cfg.NoSlvPorts+i] = ccu_snp_resp[j];
+   end
+
    snoop_mux #(
      .snoop_req_t  ( snoop_req_t    ),
      .snoop_resp_t ( snoop_resp_t   ),
@@ -221,8 +239,8 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_ccu_fsm
    ) i_snoop_mux (
        .clk_i,
        .rst_ni,
-       .slv_reqs_i   ( slv_snp_req       ),
-       .slv_resps_o  ( slv_snp_resp      ),
+       .slv_reqs_i   ( ccu_snp_req       ),
+       .slv_resps_o  ( ccu_snp_resp      ),
        .mst_req_o    ( slv_snp_req_o[i]  ),
        .mst_resp_i   ( slv_snp_resp_i[i] )
    );

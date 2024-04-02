@@ -33,7 +33,6 @@ module snoop_mux #(
 ) (
   input  logic                         clk_i,    // Clock
   input  logic                         rst_ni,   // Asynchronous reset active low
-  input  logic                         test_i,   // Test Mode enable
   // slave ports, connect master modules here
   input  snoop_req_t  [NoSlvPorts-1:0] slv_reqs_i,
   output snoop_resp_t [NoSlvPorts-1:0] slv_resps_o,
