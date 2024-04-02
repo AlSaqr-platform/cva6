@@ -176,19 +176,16 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_shared_conn
 end
 
 ccu_dispatch #(
-  .DcacheLineWidth ( Cfg.DcacheLineWidth    ),
-  .AxiDataWidth    ( Cfg.AxiDataWidth       ),
-  .NoMstPorts      ( Cfg.NoSlvPorts         ),
-  .SlvAxiIDWidth   ( Cfg.AxiIdWidthSlvPorts ), // ID width of the slave ports
-  .mst_req_t       ( mst_stg_req_t          ),
-  .mst_resp_t      ( mst_stg_resp_t         )
+  .NoPorts     ( Cfg.NoSlvPorts     ),
+  .req_t       ( slv_req_t          ),
+  .resp_t      ( slv_resp_t         )
 ) i_ccu_dispatch (
   .clk_i,
   .rst_ni,
-  .slv_req_i   ( cached_reqs  ),
-  .slv_resp_o  ( cached_resps ),
-  .mst_reqs_o  ( to_ccu_reqs  ),
-  .mst_resps_i ( to_ccu_resps )
+  .core_req_i  ( cached_reqs  ),
+  .core_resp_o ( cached_resps ),
+  .ccu_reqs_o  ( to_ccu_reqs  ),
+  .ccu_resps_i ( to_ccu_resps )
 );
 
 for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_ccu_fsm
