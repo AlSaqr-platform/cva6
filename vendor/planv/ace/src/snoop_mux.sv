@@ -150,7 +150,7 @@ module snoop_mux #(
        lock_d = lock_q;
        if(ac_ready & ac_valid)
           lock_d = 1'b1;
-       else if( (mst_resp_i.cd_valid & mst_req_o.cd_ready) | (mst_resp_i.cr_valid & mst_req_o.cr_ready & ~mst_resp_i.cr_resp[0]))
+       else if( (mst_resp_i.cd_valid & mst_resp_i.cd.last & mst_req_o.cd_ready) | (mst_resp_i.cr_valid & mst_req_o.cr_ready & ~mst_resp_i.cr_resp[0]))
          lock_d = 1'b0;
     end
 
