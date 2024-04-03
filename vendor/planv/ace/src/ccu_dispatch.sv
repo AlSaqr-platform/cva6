@@ -84,8 +84,10 @@ module ccu_dispatch
             end // for (genvar j = 0; j < NoPorts ; j++)
             ccu_req_o[i].aw_valid = core_req_i[i].aw_valid & ~(|w_overlap);
             core_resp_o[i].aw_ready = ccu_resp_i[i].aw_ready & ~(|w_overlap);
-            inflight_trx_d[i].write = to_open_trx.write;
-            inflight_trx_d[i].write.valid = 1'b1;
+            if(core_resp_o[i].aw_ready & core_req_i[i].aw_valid) begin
+               inflight_trx_d[i].write = to_open_trx.write;
+               inflight_trx_d[i].write.valid = 1'b1;
+            end
          end // if (core_req_i[i].aw_valid)
          if(ccu_resp_i[i].b_valid & ccu_req_o[i].b_ready) begin
             inflight_trx_d[i].write.valid = 1'b0;
@@ -119,8 +121,10 @@ module ccu_dispatch
             end // for (genvar j = 0; j < NoPorts ; j++)
             ccu_req_o[i].ar_valid = core_req_i[i].ar_valid & ~(|r_overlap);
             core_resp_o[i].ar_ready = ccu_resp_i[i].ar_ready & ~(|r_overlap);
-            inflight_trx_d[i].read = to_open_trx.read;
-            inflight_trx_d[i].read.valid = 1'b1;
+            if(core_resp_o[i].ar_ready & core_req_i[i].ar_valid) begin
+               inflight_trx_d[i].read = to_open_trx.read;
+               inflight_trx_d[i].read.valid = 1'b1;
+            end
          end // if (core_req_i[i].aw_valid)
          if(ccu_resp_i[i].r_valid & ccu_req_o[i].r_ready & ccu_resp_i[i].r.last) begin
             inflight_trx_d[i].read.valid = 1'b0;
