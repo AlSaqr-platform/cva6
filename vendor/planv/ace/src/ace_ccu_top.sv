@@ -160,12 +160,12 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_non_shared_conn
 
   always_comb begin
     out_reqs[i] = out_reqs_tmp[i];
-    out_reqs[i].aw.user[$clog2(Cfg.NoSlvPorts)-1:0] = i[$clog2(Cfg.NoSlvPorts)-1:0];
-    out_reqs[i].ar.user[$clog2(Cfg.NoSlvPorts)-1:0] = i[$clog2(Cfg.NoSlvPorts)-1:0];
+    out_reqs[i].aw.user[$clog2(Cfg.NoSlvPorts*2)-1:0] = i[$clog2(Cfg.NoSlvPorts*2)-1:0];
+    out_reqs[i].ar.user[$clog2(Cfg.NoSlvPorts*2)-1:0] = i[$clog2(Cfg.NoSlvPorts*2)-1:0];
 
-    out_reqs[Cfg.NoSlvPorts+i] = out_reqs_tmp[Cfg.NoSlvPorts];
-    out_reqs[Cfg.NoSlvPorts+i].aw.user[$clog2(Cfg.NoSlvPorts)-1:0] = out_reqs_tmp[Cfg.NoSlvPorts].aw.id[Cfg.AxiIdWidthSlvPorts +: $clog2(Cfg.NoSlvPorts)];
-    out_reqs[Cfg.NoSlvPorts+i].ar.user[$clog2(Cfg.NoSlvPorts)-1:0] = out_reqs_tmp[Cfg.NoSlvPorts].ar.id[Cfg.AxiIdWidthSlvPorts +: $clog2(Cfg.NoSlvPorts)];
+    out_reqs[Cfg.NoSlvPorts+i] = out_reqs_tmp[Cfg.NoSlvPorts+i];
+    out_reqs[Cfg.NoSlvPorts+i].aw.user[$clog2(Cfg.NoSlvPorts*2)-1:0] = Cfg.NoSlvPorts+i;
+    out_reqs[Cfg.NoSlvPorts+i].ar.user[$clog2(Cfg.NoSlvPorts*2)-1:0] = Cfg.NoSlvPorts+i;
   end
 end
 
@@ -204,6 +204,7 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_ccu_fsm
        .AxiDataWidth    ( Cfg.AxiDataWidth       ),
        .NoMstPorts      ( Cfg.NoSlvPorts         ),
        .SlvAxiIDWidth   ( Cfg.AxiIdWidthSlvPorts ), // ID width of the slave ports
+       .IDCCU           ( i                      ),
        .mst_req_t       ( slv_req_t              ),
        .mst_resp_t      ( slv_resp_t             ),
        .snoop_req_t     ( snoop_req_t            ),

@@ -7,6 +7,7 @@ module ccu_fsm
     parameter int unsigned AxiDataWidth = 0,
     parameter int unsigned NoMstPorts = 4,
     parameter int unsigned SlvAxiIDWidth = 0,
+    parameter int unsigned IDCCU = 0,
     parameter type mst_req_t    = logic,
     parameter type mst_resp_t   = logic,
     parameter type snoop_req_t  = logic,
@@ -128,12 +129,12 @@ module ccu_fsm
                (ccu_req_i.ar_valid & prio_q.waiting_r) |
                (ccu_req_i.ar_valid & !prio_q.waiting_w)) begin
                 state_d = DECODE_R;
-                initiator_d[ccu_req_i.ar.id[SlvAxiIDWidth+:MstIdxBits]] = 1'b1;
+                initiator_d[IDCCU] = 1'b1;
                 prio_d.waiting_w = ccu_req_i.aw_valid;
             end else if((ccu_req_i.aw_valid & !ccu_req_i.ar_valid) |
                         (ccu_req_i.aw_valid & prio_q.waiting_w)) begin
                 state_d = DECODE_W;
-                initiator_d[ccu_req_i.aw.id[SlvAxiIDWidth+:MstIdxBits]] = 1'b1;
+                initiator_d[IDCCU] = 1'b1;
                 prio_d.waiting_r = ccu_req_i.ar_valid;
             end else begin
                 state_d = IDLE;
