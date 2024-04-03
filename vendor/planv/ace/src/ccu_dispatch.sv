@@ -44,17 +44,18 @@ module ccu_dispatch
 
    ax_trx_t [NoPorts-1:0] inflight_trx_d, inflight_trx_q;
 
-   always_comb begin
+   always_comb begin : comb_check
       inflight_trx_d = inflight_trx_q;
-      for (int i = 0; i < NoPorts; i++) begin
+      for (int i = 0; i < NoPorts; i++) begin : check_incoming_reqs
          logic [NoPorts-1:0] w_overlap;
          logic [NoPorts-1:0] r_overlap;
          ax_trx_t to_open_trx;
          w_overlap = '0;
          r_overlap = '0;
+         to_open_trx = '0;
          ccu_req_o[i] = core_req_i[i];
          core_resp_o[i] = ccu_resp_i[i];
-         if(core_req_i[i].aw_valid) begin
+         if(core_req_i[i].aw_valid) begin : aw_req
             to_open_trx.write.start_addr = axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size);
             to_open_trx.write.end_addr = axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size) + (axi_pkg::num_bytes(core_req_i[i].aw.size) * (core_req_i[i].aw.len + 1));
             for (int j = 0; j < NoPorts ; j++) begin
@@ -62,20 +63,20 @@ module ccu_dispatch
                   w_overlap[j] = 1'b0;
                end else begin
                   if(inflight_trx_q[j].write.valid) begin
-                     if( (to_open_trx.write.start_addr >= inflight_trx_q[j].write.start_addr) || (to_open_trx.write.end_addr <= inflight_trx_q[j].write.end_addr) )begin
+                     if( (to_open_trx.write.start_addr >= inflight_trx_q[j].write.start_addr) && (to_open_trx.write.end_addr <= inflight_trx_q[j].write.end_addr) )begin
                         w_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.write.start_addr <= inflight_trx_q[j].write.end_addr) || (to_open_trx.write.end_addr > inflight_trx_q[j].write.end_addr)) begin
+                     end else if( (to_open_trx.write.start_addr <= inflight_trx_q[j].write.end_addr) && (to_open_trx.write.end_addr > inflight_trx_q[j].write.end_addr)) begin
                         w_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.write.end_addr >= inflight_trx_q[j].write.start_addr) || (to_open_trx.write.start_addr < inflight_trx_q[j].write.start_addr)) begin
+                     end else if( (to_open_trx.write.end_addr >= inflight_trx_q[j].write.start_addr) && (to_open_trx.write.start_addr < inflight_trx_q[j].write.start_addr)) begin
                         w_overlap[j] = 1'b1;
                      end
                   end
                   if(inflight_trx_q[j].read.valid) begin
-                     if( (to_open_trx.write.start_addr >= inflight_trx_q[j].read.start_addr) || (to_open_trx.write.end_addr <= inflight_trx_q[j].read.end_addr) )begin
+                     if( (to_open_trx.write.start_addr >= inflight_trx_q[j].read.start_addr) && (to_open_trx.write.end_addr <= inflight_trx_q[j].read.end_addr) )begin
                         w_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.write.start_addr <= inflight_trx_q[j].read.end_addr) || (to_open_trx.write.end_addr > inflight_trx_q[j].read.end_addr)) begin
+                     end else if( (to_open_trx.write.start_addr <= inflight_trx_q[j].read.end_addr) && (to_open_trx.write.end_addr > inflight_trx_q[j].read.end_addr)) begin
                         w_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.write.end_addr >= inflight_trx_q[j].read.start_addr) || (to_open_trx.write.start_addr < inflight_trx_q[j].read.start_addr)) begin
+                     end else if( (to_open_trx.write.end_addr >= inflight_trx_q[j].read.start_addr) && (to_open_trx.write.start_addr < inflight_trx_q[j].read.start_addr)) begin
                         w_overlap[j] = 1'b1;
                      end
                   end
@@ -89,7 +90,7 @@ module ccu_dispatch
          if(ccu_resp_i[i].b_valid & ccu_req_o[i].b_ready) begin
             inflight_trx_d[i].write.valid = 1'b0;
          end
-         if(core_req_i[i].ar_valid) begin
+         if(core_req_i[i].ar_valid) begin : ar_req
             to_open_trx.read.start_addr = axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size);
             to_open_trx.read.end_addr = axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size) + (axi_pkg::num_bytes(core_req_i[i].aw.size) * (core_req_i[i].aw.len + 1));
             for (int j = 0; j < NoPorts ; j++) begin
@@ -97,20 +98,20 @@ module ccu_dispatch
                   r_overlap[j] = 1'b0;
                end else begin
                   if(inflight_trx_q[j].write.valid) begin
-                     if( (to_open_trx.read.start_addr >= inflight_trx_q[j].write.start_addr) || (to_open_trx.read.end_addr <= inflight_trx_q[j].write.end_addr) )begin
+                     if( (to_open_trx.read.start_addr >= inflight_trx_q[j].write.start_addr) && (to_open_trx.read.end_addr <= inflight_trx_q[j].write.end_addr) )begin
                         r_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.read.start_addr <= inflight_trx_q[j].write.end_addr) || (to_open_trx.read.end_addr > inflight_trx_q[j].write.end_addr)) begin
+                     end else if( (to_open_trx.read.start_addr <= inflight_trx_q[j].write.end_addr) && (to_open_trx.read.end_addr > inflight_trx_q[j].write.end_addr)) begin
                         r_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.read.end_addr >= inflight_trx_q[j].write.start_addr) || (to_open_trx.read.start_addr < inflight_trx_q[j].write.start_addr)) begin
+                     end else if( (to_open_trx.read.end_addr >= inflight_trx_q[j].write.start_addr) && (to_open_trx.read.start_addr < inflight_trx_q[j].write.start_addr)) begin
                         r_overlap[j] = 1'b1;
                      end
                   end
                   if(inflight_trx_q[j].read.valid) begin
-                     if( (to_open_trx.read.start_addr >= inflight_trx_q[j].read.start_addr) || (to_open_trx.read.end_addr <= inflight_trx_q[j].read.end_addr) )begin
+                     if( (to_open_trx.read.start_addr >= inflight_trx_q[j].read.start_addr) && (to_open_trx.read.end_addr <= inflight_trx_q[j].read.end_addr) )begin
                         r_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.read.start_addr <= inflight_trx_q[j].read.end_addr) || (to_open_trx.read.end_addr > inflight_trx_q[j].read.end_addr)) begin
+                     end else if( (to_open_trx.read.start_addr <= inflight_trx_q[j].read.end_addr) && (to_open_trx.read.end_addr > inflight_trx_q[j].read.end_addr)) begin
                         r_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.read.end_addr >= inflight_trx_q[j].read.start_addr) || (to_open_trx.read.start_addr < inflight_trx_q[j].read.start_addr)) begin
+                     end else if( (to_open_trx.read.end_addr >= inflight_trx_q[j].read.start_addr) && (to_open_trx.read.start_addr < inflight_trx_q[j].read.start_addr)) begin
                         r_overlap[j] = 1'b1;
                      end
                   end
