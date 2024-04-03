@@ -91,8 +91,8 @@ module ccu_dispatch
             inflight_trx_d[i].write.valid = 1'b0;
          end
          if(core_req_i[i].ar_valid) begin : ar_req
-            to_open_trx.read.start_addr = axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size);
-            to_open_trx.read.end_addr = axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size) + (axi_pkg::num_bytes(core_req_i[i].aw.size) * (core_req_i[i].aw.len + 1));
+            to_open_trx.read.start_addr = axi_pkg::aligned_addr(core_req_i[i].ar.addr,core_req_i[i].aw.size);
+            to_open_trx.read.end_addr = axi_pkg::aligned_addr(core_req_i[i].ar.addr,core_req_i[i].aw.size) + (axi_pkg::num_bytes(core_req_i[i].ar.size) * (core_req_i[i].ar.len + 1));
             for (int j = 0; j < NoPorts ; j++) begin
                if ( i == j ) begin
                   r_overlap[j] = 1'b0;
