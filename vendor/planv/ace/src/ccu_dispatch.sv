@@ -72,8 +72,8 @@ module ccu_dispatch
          ccu_req_o[i] = core_req_i[i];
          core_resp_o[i] = ccu_resp_i[i];
          for(int k = 0; k < NoPorts ; k++) begin
-            aw_valids[k] = (core_req_i[k].aw_valid & (k<i)) | (aw_lock_q[k] & (k!=i));
-            ar_valids[k] = (core_req_i[k].ar_valid & (k<i)) | (ar_lock_q[k] & (k!=i));
+            aw_valids[k] = aw_lock_q[i] ? 1'b0 : ( (core_req_i[k].aw_valid & (k<i)) | (aw_lock_q[k] & (k!=i)) );
+            ar_valids[k] = ar_lock_q[i] ? 1'b0 : ( (core_req_i[k].ar_valid & (k<i)) | (ar_lock_q[k] & (k!=i)) );
          end
          if(core_req_i[i].aw_valid) begin : aw_req
             to_open_trx.write.start_addr = ( axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size) >> DCacheByteOffset ) << DCacheByteOffset;
