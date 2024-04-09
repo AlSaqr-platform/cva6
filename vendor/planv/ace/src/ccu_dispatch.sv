@@ -46,6 +46,15 @@ module ccu_dispatch
    } ax_trx_t;
 
    ax_trx_t [NoPorts-1:0] inflight_trx_d, inflight_trx_q;
+   logic [NoPorts-1:0] aw_lock_d, aw_lock_q;
+   logic [NoPorts-1:0] ar_lock_d, ar_lock_q;
+
+   always_comb begin : lock_ax_valids
+      for (int p = 0; p < NoPorts; p++) begin : check_incoming_reqs
+         aw_lock_d[p] = ccu_req_o[p].aw_valid & ~ccu_resp_i[p].aw_ready;
+         ar_lock_d[p] = ccu_req_o[p].ar_valid & ~ccu_resp_i[p].ar_ready;
+      end
+   end
 
    always_comb begin : comb_check
       inflight_trx_d = inflight_trx_q;
@@ -63,8 +72,8 @@ module ccu_dispatch
          ccu_req_o[i] = core_req_i[i];
          core_resp_o[i] = ccu_resp_i[i];
          for(int k = 0; k < NoPorts ; k++) begin
-            aw_valids[k] = core_req_i[k].aw_valid & (k<i);
-            ar_valids[k] = core_req_i[k].ar_valid & (k<i);
+            aw_valids[k] = (core_req_i[k].aw_valid & (k<i)) | (aw_lock_q[k] & (k!=i));
+            ar_valids[k] = (core_req_i[k].ar_valid & (k<i)) | (ar_lock_q[k] & (k!=i));
          end
          if(core_req_i[i].aw_valid) begin : aw_req
             to_open_trx.write.start_addr = ( axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size) >> DCacheByteOffset ) << DCacheByteOffset;
@@ -95,7 +104,7 @@ module ccu_dispatch
             end // for (genvar j = 0; j < NoPorts ; j++)
             ccu_req_o[i].aw_valid = core_req_i[i].aw_valid & ~(|w_overlap) & ~(|aw_valids) & ~(|ar_valids);
             core_resp_o[i].aw_ready = ccu_resp_i[i].aw_ready & ~(|w_overlap);
-            if(core_resp_o[i].aw_ready & ccu_req_o[i].aw_valid) begin
+            if(ccu_resp_i[i].aw_ready & ccu_req_o[i].aw_valid) begin
                inflight_trx_d[i].write = to_open_trx.write;
                inflight_trx_d[i].write.valid = 1'b1;
             end
@@ -132,7 +141,7 @@ module ccu_dispatch
             end // for (genvar j = 0; j < NoPorts ; j++)
             ccu_req_o[i].ar_valid = core_req_i[i].ar_valid & ~(|r_overlap) & ~(|aw_valids) & ~(|ar_valids);
             core_resp_o[i].ar_ready = ccu_resp_i[i].ar_ready & ~(|r_overlap);
-            if(core_resp_o[i].ar_ready & ccu_req_o[i].ar_valid) begin
+            if(ccu_resp_i[i].ar_ready & ccu_req_o[i].ar_valid) begin
                inflight_trx_d[i].read = to_open_trx.read;
                inflight_trx_d[i].read.valid = 1'b1;
             end
@@ -144,5 +153,7 @@ module ccu_dispatch
    end // always_comb
 
    `FF(inflight_trx_q,inflight_trx_d,'0,clk_i,rst_ni)
+   `FF(aw_lock_q,aw_lock_d,'0,clk_i,rst_ni)
+   `FF(ar_lock_q,ar_lock_d,'0,clk_i,rst_ni)
 
 endmodule // ccu_dispatch
