@@ -46,4 +46,4 @@
 [submodule "fpga/src/ariane-ethernet"]
 	path = fpga/src/ariane-ethernet
 	url = git@github.com:AlSaqr-platform/ethernet.git
-	branch = ariane-ethernet_ssio-no-buf
+	branch = mf/eth-alsaqr
