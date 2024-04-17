@@ -2293,7 +2293,7 @@ package tb_std_cache_subsystem_pkg;
 
                     // wait for B beat
                     b_mbx.get(b_beat);
-                    $display("%t ns %s.do_miss.evict : got B beat for message %s", $time, name, msg.print_me());
+                    $display("%t ns %s.do_miss.evict : got B beat [ID: %h, RESP: %h] for message %s", $time, name, b_beat.b_id, b_beat.b_resp, msg.print_me());
                     a_empty_b : assert (b_mbx.num() == 0) else $error ("%S.do_miss : B mailbox not empty", name);
 
                     wait (0); // avoid exiting fork
@@ -2879,7 +2879,7 @@ package tb_std_cache_subsystem_pkg;
                                 if (b_beat_peek.b_id == aw_beat.ax_id) begin
                                     // this is our response
                                     b_mbx.get(b_beat);
-                                    $display("%t ns %s.check_amo_msg: got B beat with ID 0x%0h for message %s", $time, name, b_beat.b_id, msg.print_me());
+                                    $display("%t ns %s.check_amo_msg: got B beat with ID 0x%0h and resp 0x%x for message %s", $time, name, b_beat.b_id, b_beat.b_resp, msg.print_me());
                                 end else begin
                                     $display("%t ns %s.check_amo_msg: ignoring B beat with ID 0x%0h for message : %s", $time, name, b_beat_peek.b_id, msg.print_me());
                                     @(posedge sram_vif.clk);
