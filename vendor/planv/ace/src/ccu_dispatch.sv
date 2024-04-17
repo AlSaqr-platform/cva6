@@ -77,7 +77,9 @@ module ccu_dispatch
          end
          if(core_req_i[i].aw_valid) begin : aw_req
             to_open_trx.write.start_addr = ( axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size) >> DCacheByteOffset ) << DCacheByteOffset;
+            to_open_trx.write.start_addr[AxiAddrWidth-1:ariane_pkg::DCACHE_INDEX_WIDTH] = '0;
             to_open_trx.write.end_addr = (( axi_pkg::aligned_addr(core_req_i[i].aw.addr,core_req_i[i].aw.size) + (axi_pkg::num_bytes(core_req_i[i].aw.size) * (core_req_i[i].aw.len + 1)) ) >> DCacheByteOffset ) << DCacheByteOffset;
+            to_open_trx.write.end_addr[AxiAddrWidth-1:ariane_pkg::DCACHE_INDEX_WIDTH] = '0;
             for (int j = 0; j < NoPorts ; j++) begin
                if ( i == j ) begin
                   w_overlap[j] = inflight_trx_q[j].read.valid;
@@ -114,7 +116,9 @@ module ccu_dispatch
          end
          if(core_req_i[i].ar_valid) begin : ar_req
             to_open_trx.read.start_addr = ( axi_pkg::aligned_addr(core_req_i[i].ar.addr,core_req_i[i].ar.size) >> DCacheByteOffset ) << DCacheByteOffset;
+            to_open_trx.read.start_addr[AxiAddrWidth-1:ariane_pkg::DCACHE_INDEX_WIDTH] = '0;
             to_open_trx.read.end_addr = (( axi_pkg::aligned_addr(core_req_i[i].ar.addr,core_req_i[i].ar.size) + (axi_pkg::num_bytes(core_req_i[i].ar.size) * (core_req_i[i].ar.len + 1)) ) >> DCacheByteOffset ) << DCacheByteOffset;
+            to_open_trx.read.end_addr[AxiAddrWidth-1:ariane_pkg::DCACHE_INDEX_WIDTH] = '0;
             for (int j = 0; j < NoPorts ; j++) begin
                if ( i == j ) begin
                   r_overlap[j] = inflight_trx_q[j].write.valid;
