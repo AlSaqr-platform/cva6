@@ -18,6 +18,7 @@
 module ccu_dispatch
  import axi_pkg::*;
  import ariane_pkg::*;
+ import ace_pkg::*;
  #(
   parameter int  NoPorts = '0,
   parameter int  AxiAddrWidth = 64,
@@ -85,22 +86,10 @@ module ccu_dispatch
                   w_overlap[j] = inflight_trx_q[j].read.valid;
                end else begin
                   if(inflight_trx_q[j].write.valid) begin
-                     if( (to_open_trx.write.start_addr >= inflight_trx_q[j].write.start_addr) && (to_open_trx.write.end_addr <= inflight_trx_q[j].write.end_addr) )begin
-                        w_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.write.start_addr <= inflight_trx_q[j].write.end_addr) && (to_open_trx.write.end_addr >= inflight_trx_q[j].write.end_addr)) begin
-                        w_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.write.end_addr >= inflight_trx_q[j].write.start_addr) && (to_open_trx.write.start_addr <= inflight_trx_q[j].write.start_addr)) begin
-                        w_overlap[j] = 1'b1;
-                     end
+                     w_overlap[j] = ace_pkg::check_collision(to_open_trx.write.start_addr, to_open_trx.write.end_addr, inflight_trx_q[j].write.start_addr, inflight_trx_q[j].write.end_addr);
                   end
                   if(inflight_trx_q[j].read.valid) begin
-                     if( (to_open_trx.write.start_addr >= inflight_trx_q[j].read.start_addr) && (to_open_trx.write.end_addr <= inflight_trx_q[j].read.end_addr) )begin
-                        w_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.write.start_addr <= inflight_trx_q[j].read.end_addr) && (to_open_trx.write.end_addr >= inflight_trx_q[j].read.end_addr)) begin
-                        w_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.write.end_addr >= inflight_trx_q[j].read.start_addr) && (to_open_trx.write.start_addr <= inflight_trx_q[j].read.start_addr)) begin
-                        w_overlap[j] = 1'b1;
-                     end
+                     w_overlap[j] = ace_pkg::check_collision(to_open_trx.write.start_addr, to_open_trx.write.end_addr, inflight_trx_q[j].read.start_addr, inflight_trx_q[j].read.end_addr);
                   end
                end // else: !if( i == j )
             end // for (genvar j = 0; j < NoPorts ; j++)
@@ -124,22 +113,10 @@ module ccu_dispatch
                   r_overlap[j] = inflight_trx_q[j].write.valid;
                end else begin
                   if(inflight_trx_q[j].write.valid) begin
-                     if( (to_open_trx.read.start_addr >= inflight_trx_q[j].write.start_addr) && (to_open_trx.read.end_addr <= inflight_trx_q[j].write.end_addr) )begin
-                        r_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.read.start_addr <= inflight_trx_q[j].write.end_addr) && (to_open_trx.read.end_addr >= inflight_trx_q[j].write.end_addr)) begin
-                        r_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.read.end_addr >= inflight_trx_q[j].write.start_addr) && (to_open_trx.read.start_addr <= inflight_trx_q[j].write.start_addr)) begin
-                        r_overlap[j] = 1'b1;
-                     end
+                     r_overlap[j] = ace_pkg::check_collision(to_open_trx.read.start_addr, to_open_trx.read.end_addr, inflight_trx_q[j].write.start_addr, inflight_trx_q[j].write.end_addr);
                   end
                   if(inflight_trx_q[j].read.valid) begin
-                     if( (to_open_trx.read.start_addr >= inflight_trx_q[j].read.start_addr) && (to_open_trx.read.end_addr <= inflight_trx_q[j].read.end_addr) )begin
-                        r_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.read.start_addr <= inflight_trx_q[j].read.end_addr) && (to_open_trx.read.end_addr >= inflight_trx_q[j].read.end_addr)) begin
-                        r_overlap[j] = 1'b1;
-                     end else if( (to_open_trx.read.end_addr >= inflight_trx_q[j].read.start_addr) && (to_open_trx.read.start_addr <= inflight_trx_q[j].read.start_addr)) begin
-                        r_overlap[j] = 1'b1;
-                     end
+                     r_overlap[j] = ace_pkg::check_collision(to_open_trx.read.start_addr, to_open_trx.read.end_addr, inflight_trx_q[j].read.start_addr, inflight_trx_q[j].read.end_addr);
                   end
                end // else: !if( i == j )
             end // for (genvar j = 0; j < NoPorts ; j++)
