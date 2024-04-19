@@ -83,7 +83,7 @@ module ccu_dispatch
             to_open_trx.write.end_addr[AxiAddrWidth-1:ariane_pkg::DCACHE_INDEX_WIDTH] = '0;
             for (int j = 0; j < NoPorts ; j++) begin
                if ( i == j ) begin
-                  w_overlap[j] = inflight_trx_q[j].read.valid;
+                  w_overlap[j] = inflight_trx_q[j].read.valid | inflight_trx_q[j].write.valid;
                end else begin
                   if(inflight_trx_q[j].write.valid) begin
                      w_overlap[j] = ace_pkg::check_collision(to_open_trx.write.start_addr, to_open_trx.write.end_addr, inflight_trx_q[j].write.start_addr, inflight_trx_q[j].write.end_addr);
@@ -110,7 +110,7 @@ module ccu_dispatch
             to_open_trx.read.end_addr[AxiAddrWidth-1:ariane_pkg::DCACHE_INDEX_WIDTH] = '0;
             for (int j = 0; j < NoPorts ; j++) begin
                if ( i == j ) begin
-                  r_overlap[j] = inflight_trx_q[j].write.valid;
+                  r_overlap[j] = inflight_trx_q[j].write.valid | inflight_trx_q[j].read.valid;
                end else begin
                   if(inflight_trx_q[j].write.valid) begin
                      r_overlap[j] = ace_pkg::check_collision(to_open_trx.read.start_addr, to_open_trx.read.end_addr, inflight_trx_q[j].write.start_addr, inflight_trx_q[j].write.end_addr);
