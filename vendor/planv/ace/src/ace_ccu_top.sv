@@ -94,10 +94,9 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_slv_port_demux
       .axi_req_t      ( slv_req_t              ),
       .axi_resp_t     ( slv_resp_t             ),
       .NoMstPorts     ( 2                      ),  // one for CCU module and one for mux
-      .MaxTrans       ( Cfg.MaxMstTrans        ),
+      .MaxTrans       ( 4                      ),
       .AxiLookBits    ( Cfg.AxiIdUsedSlvPorts  ),
       .UniqueIds      ( Cfg.UniqueIds          ),
-      //.FallThrough    ( Cfg.FallThrough        ),
       .SpillAw        ( Cfg.LatencyMode[9]     ),
       .SpillW         ( Cfg.LatencyMode[8]     ),
       .SpillB         ( Cfg.LatencyMode[7]     ),
@@ -132,7 +131,7 @@ axi_mux #(
   .mst_req_t     ( mst_req_t              ),
   .mst_resp_t    ( mst_resp_t             ),
   .NoSlvPorts    ( Cfg.NoSlvPorts * 2     ), // Number of Masters for the modules
-  .MaxWTrans     ( Cfg.MaxMstTrans        ),
+  .MaxWTrans     ( 4                      ),
   .FallThrough   ( Cfg.FallThrough        ),
   .SpillAw       ( Cfg.LatencyMode[4]     ),
   .SpillW        ( Cfg.LatencyMode[3]     ),

@@ -57,8 +57,6 @@ package ace_pkg;
   /// Configuration for `ace_ccu`.
   typedef struct packed {
     int unsigned  NoSlvPorts;
-    int unsigned  MaxMstTrans;
-    int unsigned  MaxSlvTrans;
     bit           FallThrough;
     ccu_latency_e LatencyMode;
     int unsigned  AxiIdWidthSlvPorts;
