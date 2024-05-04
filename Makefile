@@ -175,11 +175,14 @@ src :=  core/include/$(target)_config_pkg.sv                                    
         corev_apu/register_interface/src/reg_err_slv.sv                              \
         corev_apu/register_interface/src/axi_lite_to_reg.sv                          \
         vendor/pulp-platform/axi/src/axi_multicut.sv                                 \
+		vendor/pulp-platform/common_cells/src/shift_reg_gated.sv                     \
+		vendor/pulp-platform/common_cells/src/shift_reg.sv                           \
         vendor/pulp-platform/common_cells/src/cb_filter_pkg.sv                       \
         vendor/pulp-platform/common_cells/src/cb_filter.sv                           \
         vendor/pulp-platform/common_cells/src/rstgen_bypass.sv                       \
         vendor/pulp-platform/common_cells/src/rstgen.sv                              \
-        vendor/pulp-platform/common_cells/src/addr_decode.sv                         \
+        vendor/pulp-platform/common_cells/src/addr_decode_dync.sv                    \
+		vendor/pulp-platform/common_cells/src/addr_decode.sv                         \
         vendor/pulp-platform/common_cells/src/stream_register.sv                     \
         vendor/pulp-platform/common_cells/src/stream_fifo.sv                         \
         vendor/pulp-platform/common_cells/src/stream_xbar.sv                         \
