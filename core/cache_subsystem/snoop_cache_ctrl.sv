@@ -59,7 +59,7 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
     EVAL_FLAGS,      // 2
     UPDATE_SHARED,   // 3
     INVALIDATE,      // 4
-    SEND_RESP        // 5
+    WAIT_SNOOP_PORT  // 5
   } state_t;
 
   state_t state_d, state_q;
@@ -105,13 +105,16 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
 
   logic cr_done_q, cr_done_d;
 
+  logic send_snoop_resp, snoop_port_done;
+
+  logic snoop_port_busy_d, snoop_port_busy_q;
+
   // FSM
   always_comb begin : cache_ctrl_fsm
 
     state_d = state_q;
     mem_req_d = mem_req_q;
     cache_data_d = cache_data_q;
-    cacheline_word_sel_d = cacheline_word_sel_q;
     hit_way_d = hit_way_q;
     shared_way_d = shared_way_q;
     dirty_way_d = dirty_way_q;
@@ -119,10 +122,6 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
     ac_snoop_d = ac_snoop_q;
 
     snoop_port_o.ac_ready = 1'b0;
-    snoop_port_o.cr_valid = 1'b0;
-    snoop_port_o.cd_valid = 1'b0;
-    snoop_port_o.cr_resp = '0;
-    snoop_port_o.cd = '0;
 
     req_o = '0;
     we_o = '0;
@@ -137,14 +136,13 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
     clean_invalid_hit_o = 1'b0;
     clean_invalid_miss_o = 1'b0;
 
-    cr_done_d = cr_done_q;
+    send_snoop_resp = 1'b0;
 
     case (state_q)
 
       IDLE: begin
         cr_resp_d = '0;
         ac_snoop_d = '0;
-        cacheline_word_sel_d = 1'b0;
 
         // we receive a snooping request
         if (snoop_port_i.ac_valid == 1'b1 && flushing_i == 1'b0 && !(amo_valid_i == 1'b1 && amo_addr_i[63:DCACHE_BYTE_OFFSET] == snoop_port_i.ac.addr[63:DCACHE_BYTE_OFFSET])) begin
@@ -154,7 +152,8 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
           mem_req_d.tag = snoop_port_i.ac.addr[DCACHE_INDEX_WIDTH+:DCACHE_TAG_WIDTH];
           mem_req_d.size = 2'b11;
           if (bypass_i) begin
-            state_d = SEND_RESP;
+            send_snoop_resp = 1'b1;
+            state_d = snoop_port_done ? IDLE : WAIT_SNOOP_PORT;
           end
           else begin
             // invalidate request
@@ -169,7 +168,8 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
             end
             // wrong request
             else begin
-              state_d = SEND_RESP;
+              send_snoop_resp = 1'b1;
+              state_d = snoop_port_done ? IDLE : WAIT_SNOOP_PORT;
               cr_resp_d.error = 1'b1;
             end
           end
@@ -205,7 +205,8 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
             end
             snoop_pkg::READ_ONCE: begin
               cr_resp_d.isShared = shared;
-              state_d = SEND_RESP;
+              send_snoop_resp = 1'b1;
+              state_d = snoop_port_done ? IDLE : WAIT_SNOOP_PORT;
             end
             snoop_pkg::READ_SHARED: begin
               cr_resp_d.isShared = 1'b1;
@@ -225,7 +226,8 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
           cr_resp_d.dataTransfer = 1'b0;
           cr_resp_d.passDirty = 1'b0;
           cr_resp_d.isShared = 1'b0;
-          state_d = SEND_RESP;
+          send_snoop_resp = 1'b1;
+          state_d = snoop_port_done ? IDLE : WAIT_SNOOP_PORT;
           clean_invalid_miss_o = (ac_snoop_q == snoop_pkg::CLEAN_INVALID);
         end
       end
@@ -239,7 +241,8 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
         // change shared the state
         data_o.shared = 1'b1;
         if (gnt_i) begin
-          state_d = SEND_RESP;
+          send_snoop_resp = 1'b1;
+          state_d = snoop_port_done ? IDLE : WAIT_SNOOP_PORT;
           readshared_done_o.valid = 1'b1;
           readshared_done_o.addr = {mem_req_q.tag, mem_req_q.index};
         end
@@ -258,32 +261,78 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
         // we are not blocked by the miss_handler here
         invalidate_o = 1'b1;
         if (gnt_i) begin
-          state_d = SEND_RESP;
+          send_snoop_resp = 1'b1;
+          state_d = snoop_port_done ? IDLE : WAIT_SNOOP_PORT;
         end
       end
 
-      SEND_RESP: begin
-        snoop_port_o.cr_resp = cr_resp_q;
-        snoop_port_o.cd.data = cacheline_word_sel_q ? cache_data_q[127:64] : cache_data_q[63:0];
-        snoop_port_o.cd.last = cacheline_word_sel_q;
-
-        snoop_port_o.cr_valid = !cr_done_q;
-
-        if (cr_resp_q.dataTransfer) begin
-          snoop_port_o.cd_valid = 1'b1;
-          cacheline_word_sel_d  = snoop_port_i.cd_ready || cacheline_word_sel_q;
-          cr_done_d             = snoop_port_i.cr_ready || cr_done_q;
-          if (snoop_port_i.cd_ready && cacheline_word_sel_q) begin
-            cr_done_d = 1'b0;
-            state_d = IDLE;
-          end
-        end else if (snoop_port_i.cr_ready) begin
-          cr_done_d = 1'b0;
-          state_d   = IDLE;
+      WAIT_SNOOP_PORT: begin
+        if (snoop_port_done) begin
+          state_d = IDLE;
         end
       end
 
     endcase
+  end
+
+  logic data_transfer;
+
+  always_comb begin
+
+    cacheline_word_sel_d = cacheline_word_sel_q;
+    snoop_port_busy_d    = snoop_port_busy_q;
+    cr_done_d            = cr_done_q;
+
+    snoop_port_done      = 1'b0;
+
+    snoop_port_o.cr_valid = 1'b0;
+    snoop_port_o.cd_valid = 1'b0;
+
+    snoop_port_o.cr_resp = cr_resp_q;
+
+    snoop_port_o.cd.data = cacheline_word_sel_q ? cache_data_q[127:64] : cache_data_q[63:0];
+    snoop_port_o.cd.last = cacheline_word_sel_q;
+
+    data_transfer        = cr_resp_q.dataTransfer;
+
+    // Corner cases
+    if (send_snoop_resp) begin
+      case (state_q)
+        IDLE: begin
+          data_transfer              = '0;
+          snoop_port_o.cr_resp       = '0;
+          snoop_port_o.cr_resp.error = cr_resp_d.error;
+        end
+        EVAL_FLAGS: begin
+          data_transfer                     = cr_resp_d.dataTransfer;
+          snoop_port_o.cr_resp              = '0;
+          snoop_port_o.cr_resp.isShared     = cr_resp_d.isShared;
+          snoop_port_o.cr_resp.dataTransfer = cr_resp_d.dataTransfer;
+          snoop_port_o.cd.data              = cache_data_d[63:0];
+        end
+      endcase
+    end
+
+    if (send_snoop_resp || snoop_port_busy_q) begin
+      snoop_port_busy_d     = 1'b1;
+      snoop_port_o.cr_valid = !cr_done_q;
+      if (data_transfer) begin
+        snoop_port_o.cd_valid = 1'b1;
+        cacheline_word_sel_d  = snoop_port_i.cd_ready || cacheline_word_sel_q;
+        cr_done_d             = snoop_port_i.cr_ready || cr_done_q;
+        if (snoop_port_i.cd_ready && cacheline_word_sel_q) begin
+          cacheline_word_sel_d = 1'b0;
+          snoop_port_busy_d    = 1'b0;
+          cr_done_d            = 1'b0;
+          snoop_port_done      = 1'b1;
+        end
+      end else if (snoop_port_i.cr_ready) begin
+        cacheline_word_sel_d = 1'b0;
+        snoop_port_busy_d    = 1'b0;
+        cr_done_d            = 1'b0;
+        snoop_port_done      = 1'b1;
+      end
+    end
   end
 
   // Registers
@@ -300,6 +349,7 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
       cr_resp_q <= '0;
       ac_snoop_q <= '0;
       cr_done_q  <= '0;
+      snoop_port_busy_q <= '0;
     end else begin
       state_q <= state_d;
       mem_req_q <= mem_req_d;
@@ -311,6 +361,7 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
       cr_resp_q <= cr_resp_d;
       ac_snoop_q <= ac_snoop_d;
       cr_done_q <= cr_done_d;
+      snoop_port_busy_q <= snoop_port_busy_d;
     end
   end
 
