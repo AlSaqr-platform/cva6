@@ -201,6 +201,7 @@ src :=  core/include/$(target)_config_pkg.sv                                    
         vendor/pulp-platform/axi/src/axi_dw_upsizer.sv                               \
         vendor/pulp-platform/axi/src/axi_dw_downsizer.sv                             \
         vendor/pulp-platform/axi/src/axi_dw_converter.sv                             \
+		vendor/pulp-platform/axi/src/axi_fifo.sv                                     \
         vendor/pulp-platform/common_cells/src/cdc_2phase.sv                          \
         vendor/pulp-platform/common_cells/src/spill_register_flushable.sv            \
         vendor/pulp-platform/common_cells/src/spill_register.sv                      \
