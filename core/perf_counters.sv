@@ -14,7 +14,8 @@
 
 
 module perf_counters import ariane_pkg::*; #(
-  parameter int unsigned                NumPorts      = 3    // number of miss ports
+  parameter int unsigned                NumPorts      = 3,    // number of miss ports
+  parameter int unsigned                NumExtPerfEvts = 0
 ) (
   input  logic                                    clk_i,
   input  logic                                    rst_ni,
@@ -42,6 +43,7 @@ module perf_counters import ariane_pkg::*; #(
   input  logic                                    eret_i,
   input  bp_resolve_t                             resolved_branch_i,
   // for newly added events
+  input  logic [NumExtPerfEvts-1:0]               perf_evt_i,
   input  logic                                    dc_hit_i,
   input  logic                                    dc_write_hit_unique_i,
   input  logic                                    dc_write_hit_shared_i,
@@ -83,8 +85,9 @@ module perf_counters import ariane_pkg::*; #(
 
   logic events[MHPMCounterNum:1];
   //internal signal for  MUX select line input
-  logic [5:0] mhpmevent_d[MHPMCounterNum:1];
-  logic [5:0] mhpmevent_q[MHPMCounterNum:1];
+  localparam int unsigned MHPMEventWidth = 6;
+  logic [MHPMEventWidth-1:0] mhpmevent_d[MHPMCounterNum:1];
+  logic [MHPMEventWidth-1:0] mhpmevent_q[MHPMCounterNum:1];
 
   logic [NR_COMMIT_PORTS-1:0] load_event;
   logic [NR_COMMIT_PORTS-1:0] store_event;
@@ -166,7 +169,7 @@ module perf_counters import ariane_pkg::*; #(
            6'b101110 : events[i] = out_snoop_wr_uniq_i;
            6'b101111 : events[i] = out_snoop_wr_nosnoop_i;
            6'b110000 : events[i] = out_snoop_wr_back_i;
-           default:   events[i] = 0;
+           default:   events[i] = ( (mhpmevent_q[i] > 6'b110000) && (mhpmevent_q[i] <= (6'b110000 + NumExtPerfEvts) ) ) ? (perf_evt_i[mhpmevent_q[i]-6'b110001]) : 1'b0;
          endcase
        end
 
@@ -238,7 +241,7 @@ module perf_counters import ariane_pkg::*; #(
      end
     end
 
-//Registers
+  //Registers
   always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
             generic_counter_q <= '{default:0};
@@ -248,5 +251,12 @@ module perf_counters import ariane_pkg::*; #(
             mhpmevent_q       <= mhpmevent_d;
        end
    end
+
+
+    `ifndef VERILATOR
+        initial begin
+            assert ( (6'b110000 + NumExtPerfEvts) < 2**MHPMEventWidth ) else $error ("Too many NumExtPerfEvts");
+        end
+    `endif
 
 endmodule

@@ -37,6 +37,8 @@ module cva6
   // Timer facilities
   input logic                                             time_irq_i, // timer interrupt in (async)
   input logic                                             debug_req_i, // debug request (async)
+  // External perf events
+  input  logic [ArianeCfg.NumExtPerfEvts-1:0]             perf_evt_i,
    // CLIC interface - unused
   input logic                                             clic_irq_valid_i, // CLIC interrupt request
   input logic [$clog2(ArianeCfg.CLICNumInterruptSrc)-1:0] clic_irq_id_i, // interrupt source ID

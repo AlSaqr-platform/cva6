@@ -36,6 +36,8 @@ module cva6 import ariane_pkg::*; #(
   // Timer facilities
   input  logic                         time_irq_i,   // timer interrupt in (async)
   input  logic                         debug_req_i,  // debug request (async)
+  // External perf events
+  input  logic [ArianeCfg.NumExtPerfEvts-1:0] perf_evt_i,
   // CLIC interface
   input  logic                         clic_irq_valid_i, // CLIC interrupt request
   input  logic [$clog2(ArianeCfg.CLICNumInterruptSrc)-1:0] clic_irq_id_i, // interrupt source ID
@@ -756,7 +758,8 @@ module cva6 import ariane_pkg::*; #(
   // ------------------------
   if (PERF_COUNTER_EN) begin: gen_perf_counter
   perf_counters #(
-    .NumPorts            ( NumPorts                  )
+    .NumPorts            ( NumPorts                  ),
+    .NumExtPerfEvts      ( ArianeCfg.NumExtPerfEvts  )
   ) perf_counters_i (
     .clk_i               ( clk_i                     ),
     .rst_ni              ( rst_ni                    ),
@@ -777,6 +780,7 @@ module cva6 import ariane_pkg::*; #(
     .ex_i                ( ex_commit                 ),
     .eret_i              ( eret                      ),
     .resolved_branch_i   ( resolved_branch           ),
+    .perf_evt_i          ( perf_evt_i                ),
     .dc_hit_i                ( dc_hit                ),
     .dc_write_hit_unique_i   ( dc_write_hit_unique   ),
     .dc_write_hit_shared_i   ( dc_write_hit_shared   ),

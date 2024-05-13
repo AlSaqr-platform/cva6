@@ -33,6 +33,8 @@ module ariane import ariane_pkg::*; #(
   // Interrupt inputs
   input  logic [1:0]                   irq_i,        // level sensitive IR lines, mip & sip (async)
   input  logic                         ipi_i,        // inter-processor interrupts (async)
+  // External perf events
+  input  logic [ArianeCfg.NumExtPerfEvts-1:0] perf_evt_i,
   // Timer facilities
   input  logic                         time_irq_i,   // timer interrupt in (async)
   input  logic                         debug_req_i,  // debug request (async)
@@ -74,6 +76,7 @@ module ariane import ariane_pkg::*; #(
     .ipi_i                ( ipi_i                     ),
     .time_irq_i           ( time_irq_i                ),
     .debug_req_i          ( debug_req_i               ),
+    .perf_evt_i           ( perf_evt_i                ),
     .clic_irq_valid_i     ( '0                        ),
     .clic_irq_id_i        ( '0                        ),
     .clic_irq_level_i     ( '0                        ),
