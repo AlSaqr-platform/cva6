@@ -27,6 +27,14 @@ module ccu_dispatch
 ) (
    input  logic                 clk_i,
    input  logic                 rst_ni,
+   output logic  [NoPorts-1:0]  ar_stall_overlap,
+   output logic  [NoPorts-1:0]  ar_stall_other_pending,
+   output logic  [NoPorts-1:0]  ar_stall_winflight,
+   output logic  [NoPorts-1:0]  ar_stall_rinflight,
+   output logic  [NoPorts-1:0]  aw_stall_overlap,
+   output logic  [NoPorts-1:0]  aw_stall_other_pending,
+   output logic  [NoPorts-1:0]  aw_stall_winflight,
+   output logic  [NoPorts-1:0]  aw_stall_rinflight,
    input  req_t  [NoPorts-1:0]  core_req_i,
    output resp_t [NoPorts-1:0]  core_resp_o,
    output req_t  [NoPorts-1:0]  ccu_req_o,
@@ -65,6 +73,14 @@ module ccu_dispatch
          logic [NoPorts-1:0] r_overlap;
          logic [NoPorts-1:0] ar_valids;
          ax_trx_t to_open_trx;
+         aw_stall_overlap[i]       = 1'b0;
+         aw_stall_winflight[i]     = 1'b0;
+         aw_stall_rinflight[i]     = 1'b0;
+         aw_stall_other_pending[i] = 1'b0;
+         ar_stall_overlap[i]       = 1'b0;
+         ar_stall_winflight[i]     = 1'b0;
+         ar_stall_rinflight[i]     = 1'b0;
+         ar_stall_other_pending[i] = 1'b0;
          w_overlap = '0;
          aw_valids = '0;
          r_overlap = '0;
@@ -95,6 +111,10 @@ module ccu_dispatch
             end // for (genvar j = 0; j < NoPorts ; j++)
             ccu_req_o[i].aw_valid = core_req_i[i].aw_valid & ~(|w_overlap) & ~(|aw_valids) & ~(|ar_valids);
             core_resp_o[i].aw_ready = ccu_resp_i[i].aw_ready & ~(|w_overlap);
+            aw_stall_other_pending[i] =  |aw_valids || |ar_valids;
+            aw_stall_overlap[i] = |w_overlap & ~w_overlap[i];
+            aw_stall_rinflight[i] = w_overlap[i];
+            aw_stall_winflight[i] = aw_lock_q[i];
             if(ccu_resp_i[i].aw_ready & ccu_req_o[i].aw_valid) begin
                inflight_trx_d[i].write = to_open_trx.write;
                inflight_trx_d[i].write.valid = 1'b1;
@@ -122,6 +142,10 @@ module ccu_dispatch
             end // for (genvar j = 0; j < NoPorts ; j++)
             ccu_req_o[i].ar_valid = core_req_i[i].ar_valid & ~(|r_overlap) & ~(|aw_valids) & ~(|ar_valids);
             core_resp_o[i].ar_ready = ccu_resp_i[i].ar_ready & ~(|r_overlap);
+            ar_stall_other_pending[i] =  |aw_valids || |ar_valids;
+            ar_stall_overlap[i] = |r_overlap & ~r_overlap[i];
+            ar_stall_rinflight[i] = r_overlap[i];
+            ar_stall_winflight[i] = ar_lock_q[i];
             if(ccu_resp_i[i].ar_ready & ccu_req_o[i].ar_valid) begin
                inflight_trx_d[i].read = to_open_trx.read;
                inflight_trx_d[i].read.valid = 1'b1;

@@ -42,6 +42,7 @@ module ace_ccu_top
   input  logic                             clk_i,
   input  logic                             rst_ni,
   input  logic                             test_i,
+  output logic [Cfg.NoSlvPorts-1:0][7:0]   perf_evt_o,
   input  slv_req_t    [Cfg.NoSlvPorts-1:0] slv_ports_req_i,
   output slv_resp_t   [Cfg.NoSlvPorts-1:0] slv_ports_resp_o,
   output snoop_req_t  [Cfg.NoSlvPorts-1:0] slv_snp_req_o,
@@ -174,6 +175,26 @@ for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : gen_shared_conn
   `ACE_ASSIGN_RESP_STRUCT(demuxed_resps[i][1], cached_resps[i])
 end
 
+logic [Cfg.NoSlvPorts-1:0] ar_stall_overlap;
+logic [Cfg.NoSlvPorts-1:0] ar_stall_other_pending;
+logic [Cfg.NoSlvPorts-1:0] ar_stall_winflight;
+logic [Cfg.NoSlvPorts-1:0] ar_stall_rinflight;
+logic [Cfg.NoSlvPorts-1:0] aw_stall_overlap;
+logic [Cfg.NoSlvPorts-1:0] aw_stall_other_pending;
+logic [Cfg.NoSlvPorts-1:0] aw_stall_winflight;
+logic [Cfg.NoSlvPorts-1:0] aw_stall_rinflight;
+
+for (genvar i = 0; i < Cfg.NoSlvPorts; i++) begin : perf_counter_bind
+  assign perf_evt_o[i] = { ar_stall_overlap[i],
+                           ar_stall_other_pending[i],
+                           ar_stall_winflight[i],
+                           ar_stall_rinflight[i],
+                           aw_stall_overlap[i],
+                           aw_stall_other_pending[i],
+                           aw_stall_winflight[i],
+                           aw_stall_rinflight[i] };
+end
+
 ccu_dispatch #(
   .NoPorts     ( Cfg.NoSlvPorts     ),
   .req_t       ( slv_req_t          ),
@@ -181,6 +202,14 @@ ccu_dispatch #(
 ) i_ccu_dispatch (
   .clk_i,
   .rst_ni,
+  .ar_stall_overlap       (ar_stall_overlap      ),
+  .ar_stall_other_pending (ar_stall_other_pending),
+  .ar_stall_winflight     (ar_stall_winflight    ),
+  .ar_stall_rinflight     (ar_stall_rinflight    ),
+  .aw_stall_overlap       (aw_stall_overlap      ),
+  .aw_stall_other_pending (aw_stall_other_pending),
+  .aw_stall_winflight     (aw_stall_winflight    ),
+  .aw_stall_rinflight     (aw_stall_rinflight    ),
   .core_req_i  ( cached_reqs  ),
   .core_resp_o ( cached_resps ),
   .ccu_req_o   ( to_ccu_reqs  ),
@@ -259,6 +288,7 @@ module ace_ccu_top_intf
   input  logic     clk_i,
   input  logic     rst_ni,
   input  logic     test_i,
+  output logic [Cfg.NoSlvPorts-1:0][7:0] perf_evt_o,
   SNOOP_BUS.Slave  snoop_ports [Cfg.NoSlvPorts-1:0],
   ACE_BUS.Slave    slv_ports   [Cfg.NoSlvPorts-1:0],
   AXI_BUS.Master   mst_ports
@@ -343,6 +373,7 @@ module ace_ccu_top_intf
     .clk_i,
     .rst_ni,
     .test_i,
+    .perf_evt_o         ( perf_evt_o            ),
     .slv_ports_req_i    ( slv_ace_reqs          ),
     .slv_ports_resp_o   ( slv_ace_resps         ),
     .slv_snp_req_o      ( snoop_reqs            ),
