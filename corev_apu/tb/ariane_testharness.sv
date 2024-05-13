@@ -857,6 +857,7 @@ module ariane_testharness #(
   `else
       .debug_req_i          ( debug_req_core[i]   ),
   `endif
+      .perf_evt_i           ( '0                  ),
       // CLIC
       .clic_irq_valid_i     ( core_irq_valid      ),
       .clic_irq_id_i        ( core_irq_id         ),

@@ -52,6 +52,8 @@ package ariane_pkg;
       // cache config
       bit                               AxiCompliant;          // set to 1 when using in conjunction with 64bit AXI bus adapter
       bit                               SwapEndianess;         // set to 1 to swap endianess inside L1.5 openpiton adapter
+      // Perf events
+      int unsigned                      NumExtPerfEvts;
       // CLIC
       int unsigned                      CLICNumInterruptSrc;   // number of interrupt signals from the CLIC
       int unsigned                      CLICIntCtlBits;        // TODO(@niwis,@alex96295): specify
@@ -80,6 +82,8 @@ package ariane_pkg;
       NrSharedRegionRules:   unsigned'(1),
       SharedRegionAddrBase:  1024'({64'h8000_0000}),
       SharedRegionLength:    1024'({64'h40000000}),
+      // Perf events
+      NumExtPerfEvts:         8,
       // CLIC
       CLICNumInterruptSrc:    256,
       CLICIntCtlBits:         8,

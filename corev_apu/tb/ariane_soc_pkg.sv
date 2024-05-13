@@ -99,6 +99,8 @@ package ariane_soc;
     //  cache config
     AxiCompliant:           1'b1,
     SwapEndianess:          1'b0,
+    // Perf events
+    NumExtPerfEvts:         8,
     // CLIC
     CLICNumInterruptSrc:    CLICNumInterruptSrc,
     CLICIntCtlBits:         CLICIntCtlBits,
