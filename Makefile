@@ -201,6 +201,8 @@ src :=  core/include/$(target)_config_pkg.sv                                    
         vendor/pulp-platform/axi/src/axi_dw_upsizer.sv                               \
         vendor/pulp-platform/axi/src/axi_dw_downsizer.sv                             \
         vendor/pulp-platform/axi/src/axi_dw_converter.sv                             \
+        vendor/pulp-platform/common_cells/src/sync.sv                                \
+        vendor/pulp-platform/common_cells/src/sync_wedge.sv                          \
         vendor/pulp-platform/common_cells/src/cdc_2phase.sv                          \
         vendor/pulp-platform/common_cells/src/spill_register_flushable.sv            \
         vendor/pulp-platform/common_cells/src/spill_register.sv                      \
@@ -213,6 +215,12 @@ src :=  core/include/$(target)_config_pkg.sv                                    
         vendor/pulp-platform/common_cells/src/stream_fork.sv                         \
         vendor/pulp-platform/common_cells/src/stream_filter.sv                       \
         vendor/pulp-platform/common_cells/src/fall_through_register.sv               \
+        vendor/pulp-platform/common_cells/src/gray_to_binary.sv                      \
+        vendor/pulp-platform/common_cells/src/binary_to_gray.sv                      \
+        vendor/pulp-platform/common_cells/src/cdc_fifo_gray.sv                       \
+        vendor/pulp-platform/axi/src/axi_cdc_src.sv                                  \
+        vendor/pulp-platform/axi/src/axi_cdc_dst.sv                                  \
+        vendor/pulp-platform/axi/src/axi_cdc.sv                                      \
         vendor/pulp-platform/tech_cells_generic/src/deprecated/cluster_clk_cells.sv  \
         vendor/pulp-platform/tech_cells_generic/src/deprecated/pulp_clk_cells.sv     \
         vendor/pulp-platform/tech_cells_generic/src/rtl/tc_clk.sv                    \
