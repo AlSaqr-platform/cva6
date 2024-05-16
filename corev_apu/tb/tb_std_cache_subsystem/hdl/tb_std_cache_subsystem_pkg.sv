@@ -1603,7 +1603,7 @@ package tb_std_cache_subsystem_pkg;
                 @(posedge sram_vif.clk);
 
                 // 2. wait for FSM
-                @(posedge sram_vif.clk);
+                //@(posedge sram_vif.clk);
 
                 // look for the right tag
                 hit_v     = 1'b0;
