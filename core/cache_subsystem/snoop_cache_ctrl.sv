@@ -289,15 +289,15 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
     snoop_port_o.cr_valid = 1'b0;
     snoop_port_o.cd_valid = 1'b0;
 
-    snoop_port_o.cr_resp = cr_resp_d;
+    snoop_port_o.cr_resp = cr_resp_q;
 
     snoop_port_o.cd.data = cacheline_word_sel_q ? cache_data_d[127:64] : cache_data_d[63:0];
     snoop_port_o.cd.last = cacheline_word_sel_q;
 
-    if (send_snoop_resp || snoop_port_busy_q) begin
+    if (snoop_port_busy_q) begin
       snoop_port_busy_d     = 1'b1;
       snoop_port_o.cr_valid = !cr_done_q;
-      if (cr_resp_d.dataTransfer) begin
+      if (cr_resp_q.dataTransfer) begin
         snoop_port_o.cd_valid = 1'b1;
         cacheline_word_sel_d  = snoop_port_i.cd_ready || cacheline_word_sel_q;
         cr_done_d             = snoop_port_i.cr_ready || cr_done_q;
@@ -313,6 +313,8 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
         cr_done_d            = 1'b0;
         snoop_port_done      = 1'b1;
       end
+    end else if (send_snoop_resp) begin
+      snoop_port_busy_d = 1'b1;
     end
   end
 
