@@ -95,15 +95,13 @@ module miss_handler import ariane_pkg::*; import std_cache_pkg::*; #(
         MISS_REPL,          // 9
         SAVE_CACHELINE,     // A
         INIT,               // B
-        AMO_WB_REQ,         // C
-        AMO_WB,             // D
-        AMO_REQ,            // E
-        WB_CACHELINE_AMO,   // F
-        AMO_WAIT_RESP,      // 10
-        REQ_BEFORE_CLEAN, // 11
-        CHECK_BEFORE_CLEAN, // 12
-        SEND_CLEAN,         // 13
-        REQ_CACHELINE_UNIQUE // 14
+        AMO_WB,             // C
+        AMO_REQ,            // D
+        WB_CACHELINE_AMO,   // E
+        AMO_WAIT_RESP,      // F
+        CLEAN_OR_MISS,      // 10
+        SEND_CLEAN,         // 11
+        REQ_CACHELINE_UNIQUE // 12
     } state_d, state_q;
 
     // Registers
@@ -263,9 +261,11 @@ module miss_handler import ariane_pkg::*; import std_cache_pkg::*; #(
             IDLE: begin
                 // lowest priority are AMOs, wait until everything else is served before going for the AMOs
                 if (amo_req_i.req && !busy_i) begin
-                    state_d = AMO_WB_REQ;
+                    state_d = AMO_WB;
                     serve_amo_d = 1'b1;
                     cnt_d = '0;
+                    req_o   = '1;
+                    addr_o  = amo_req_i.operand_a;
                 end
                 // check if we want to flush and can flush e.g.: we are not busy anymore
                 // TODO: Check that the busy flag is indeed needed
@@ -278,7 +278,7 @@ module miss_handler import ariane_pkg::*; import std_cache_pkg::*; #(
                 for (int unsigned i = 0; i < NR_PORTS; i++) begin
                     // check if we have to generate a CleanUnique transaction
                     if (miss_req_valid[i] && miss_req_make_unique[i]) begin
-                        state_d = REQ_BEFORE_CLEAN;
+                        state_d = CLEAN_OR_MISS;
                         // we are taking another request so don't take the AMO
                         serve_amo_d  = 1'b0;
                         // save to MSHR
@@ -289,6 +289,9 @@ module miss_handler import ariane_pkg::*; import std_cache_pkg::*; #(
                         mshr_d.wdata = miss_req_wdata[i];
                         mshr_d.be    = miss_req_be[i];
                         mshr_d.make_unique    = 1'b1;
+                        // send req
+                        req_o   = '1;
+                        addr_o = mshr_d.addr[DCACHE_INDEX_WIDTH-1:0];
                         break;
                     end
                     // here comes the refill portion of code
@@ -311,14 +314,34 @@ module miss_handler import ariane_pkg::*; import std_cache_pkg::*; #(
 
             end
 
-            //  ~> we missed on the cache
-            MISS: begin
-                // 1. Check if there is an empty cache-line
-                // 2. If not -> evict one
-                req_o = '1;
-                addr_o = mshr_q.addr[DCACHE_INDEX_WIDTH-1:0];
-                state_d = MISS_REPL;
-                miss_o = 1'b1;
+            CLEAN_OR_MISS, SEND_CLEAN, MISS: begin
+                if ((state_q == CLEAN_OR_MISS && |matching_way)
+                     || state_q == SEND_CLEAN) begin
+                    state_d             = SEND_CLEAN;
+                    req_fsm_miss_valid  = 1'b1;
+                    req_fsm_miss_addr   = mshr_q.addr;
+                    req_fsm_miss_type   = ace_pkg::CLEAN_UNIQUE;
+
+                    if (valid_miss_fsm) begin
+                        // if the cacheline has just been invalidated, request it again
+                        if (colliding_clean_q) begin
+                        state_d = MISS;
+                        end
+                        else begin
+                        state_d = IDLE;
+                        mshr_d.valid = 1'b0;
+                        miss_gnt_o[mshr_q.id] = 1'b1;
+                        end
+                    end
+                //  ~> we missed on the cache
+                end else begin
+                    // 1. Check if there is an empty cache-line
+                    // 2. If not -> evict one
+                    req_o = '1;
+                    addr_o = mshr_q.addr[DCACHE_INDEX_WIDTH-1:0];
+                    state_d = MISS_REPL;
+                    miss_o = 1'b1;
+                end
             end
 
             // ~> second miss cycle
@@ -510,49 +533,8 @@ module miss_handler import ariane_pkg::*; import std_cache_pkg::*; #(
             end
 
             // ----------------------
-            // Send CleanUnique
-            // ----------------------
-            REQ_BEFORE_CLEAN: begin
-                req_o  = '1;
-                addr_o = mshr_q.addr[DCACHE_INDEX_WIDTH-1:0];
-                state_d = CHECK_BEFORE_CLEAN;
-            end
-
-            CHECK_BEFORE_CLEAN: begin
-                req_o  = '0;
-                //addr_o = mshr_q.addr[DCACHE_INDEX_WIDTH-1:0];
-                if (matching_way)
-                    state_d = SEND_CLEAN;
-                else
-                    state_d = MISS;
-            end
-
-            SEND_CLEAN: begin
-              req_fsm_miss_valid  = 1'b1;
-              req_fsm_miss_addr   = mshr_q.addr;
-              req_fsm_miss_type   = ace_pkg::CLEAN_UNIQUE;
-
-              if (valid_miss_fsm) begin
-                // if the cacheline has just been invalidated, request it again
-                if (colliding_clean_q) begin
-                  state_d = MISS;
-                end
-                else begin
-                  state_d = IDLE;
-                  mshr_d.valid = 1'b0;
-                  miss_gnt_o[mshr_q.id] = 1'b1;
-                end
-              end
-            end
-
-            // ----------------------
             // AMOs
             // ----------------------
-            AMO_WB_REQ: begin
-                req_o   = '1;
-                addr_o  = amo_req_i.operand_a;
-                state_d = AMO_WB;
-            end
 
             AMO_WB: begin
                 state_d = AMO_REQ;
