@@ -291,7 +291,7 @@ module snoop_cache_ctrl import ariane_pkg::*; import std_cache_pkg::*; #(
 
     snoop_port_o.cr_resp = cr_resp_q;
 
-    snoop_port_o.cd.data = cacheline_word_sel_q ? cache_data_d[127:64] : cache_data_d[63:0];
+    snoop_port_o.cd.data = cacheline_word_sel_q ? cache_data_q[127:64] : cache_data_q[63:0];
     snoop_port_o.cd.last = cacheline_word_sel_q;
 
     if (snoop_port_busy_q) begin
