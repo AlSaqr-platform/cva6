@@ -383,7 +383,11 @@ module commit_stage
   always_comb begin : control_transfer_records
     for (int unsigned i = 0; i < CVA6Cfg.NrCommitPorts; i++) begin
       cftype_o[i] = commit_instr_i[i].cftype;
-      cftype_valid_o[i] = commit_ack_o[i] || exception_o.valid;
+      cftype_valid_o[i] = commit_ack_o[i];
+      if (i == 0 && exception_o.valid) begin
+        cftype_o[0] = riscv::CTR_TYPE_EXC;
+        cftype_valid_o[0] = 1'b1;
+      end
     end
   end
 
