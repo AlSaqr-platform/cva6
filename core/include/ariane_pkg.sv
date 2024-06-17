@@ -746,6 +746,7 @@ package ariane_pkg;
     logic                     is_compressed; // signals a compressed instructions, we need this information at the commit stage if
                                              // we want jump accordingly e.g.: +4, +2
     logic vfp;  // is this a vector floating-point instruction?
+    riscv::ctr_type_t cftype; // 4-bit control transfer type, encoded according to the RISC-V Control Transfer Records extension.
   } scoreboard_entry_t;
 
   // ---------------

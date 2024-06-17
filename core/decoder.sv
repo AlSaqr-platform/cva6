@@ -146,6 +146,7 @@ module decoder
     illegal_instr_bm            = 1'b0;
     illegal_instr_zic           = 1'b0;
     virtual_illegal_instr       = 1'b0;
+    instruction_o.cftype        = riscv::CTR_TYPE_NONE;
     instruction_o.pc            = pc_i;
     instruction_o.trans_id      = '0;
     instruction_o.fu            = NONE;

@@ -83,7 +83,11 @@ module commit_stage
     // Flush TLBs and pipeline - CONTROLLER
     output logic hfence_vvma_o,
     // Flush TLBs and pipeline - CONTROLLER
-    output logic hfence_gvma_o
+    output logic hfence_gvma_o,
+    // Control Transfer Records type of current instruction
+    output riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] cftype_o,
+    // Control Transfer Records type is valid
+    output logic [CVA6Cfg.NrCommitPorts-1:0] cftype_valid_o
 );
 
   // ila_0 i_ila_commit (
@@ -372,4 +376,15 @@ module commit_stage
       exception_o.valid = 1'b0;
     end
   end
+
+  // ------------------------
+  // Control Transfer Records
+  // ------------------------
+  always_comb begin : control_transfer_records
+    for (int unsigned i = 0; i < CVA6Cfg.NrCommitPorts; i++) begin
+      cftype_o[i] = commit_instr_i[i].cftype;
+      cftype_valid_o[i] = commit_ack_o[i] || exception_o.valid;
+    end
+  end
+
 endmodule
