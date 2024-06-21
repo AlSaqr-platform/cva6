@@ -443,8 +443,8 @@ module cva6
   riscv::pmpcfg_t [15:0] pmpcfg;
   logic [15:0][riscv::PLEN-3:0] pmpaddr;
   logic [31:0] mcountinhibit_csr_perf;
-  riscv::ctr_type_t [CVA6ExtendCfg.NrCommitPorts-1:0] cftype_commit_csr;
-  logic [CVA6ExtendCfg.NrCommitPorts-1:0] cftype_valid_commit_csr;
+  riscv::ctrsource_rv_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_commit_ctr;
+  riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_commit_ctr;
   // ----------------------------
   // Performance Counters <-> *
   // ----------------------------
@@ -914,8 +914,8 @@ module cva6
       .hfence_gvma_o     (hfence_gvma_commit_controller),
       .fence_t_o         (fence_t_commit_controller),
       .flush_commit_o    (flush_commit),
-      .cftype_o          (cftype_commit_csr),
-      .cftype_valid_o    (cftype_valid_commit_csr),
+      .ctr_source_o      (ctr_source_commit_ctr),
+      .ctr_type_o        (ctr_type_commit_ctr),
       .*
   );
 
@@ -1406,6 +1406,19 @@ module cva6
     assign clic_irq_req_id   = 1'b0;
     assign clic_irq_cause_id = '0;
   end
+
+  // -----------------------
+  // Control Tranfer Records
+  // -----------------------
+  ctr_unit #(
+      .CVA6Cfg(CVA6Cfg)
+  ) i_ctr_unit (
+      .clk_i        (clk_i),
+      .rstn_i       (rst_ni),
+      // from commit stage
+      .ctr_source_i (ctr_source_commit_ctr),
+      .ctr_type_i   (ctr_type_commit_ctr)
+  );
 
   // -------------------
   // Parameter Check

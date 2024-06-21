@@ -868,6 +868,11 @@ package riscv;
   // ------------------------
   // Control Transfer Records
   // ------------------------
+  typedef struct packed {
+    logic [XLEN-1:1] pc;
+    logic            v;
+  } ctrsource_rv_t;
+
   typedef enum logic[3:0] {
     CTR_TYPE_NONE    = 4'd0,
     CTR_TYPE_EXC     = 4'd1,
