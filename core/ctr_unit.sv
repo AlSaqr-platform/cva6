@@ -29,4 +29,21 @@ module ctr_unit
     input logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_i
 );
 
+  riscv::ctrsource_rv_t [CVA6Cfg.NrCommitPorts-1:0] emitter_source;
+  riscv::ctrtarget_rv_t [CVA6Cfg.NrCommitPorts-1:0] emitter_target;
+  riscv::ctrdata_rv_t [CVA6Cfg.NrCommitPorts-1:0] emitter_data;
+
+  ctr_emitter #(
+      .CVA6Cfg(CVA6Cfg)
+  ) i_ctr_emitter (
+      .clk_i    (clk_i),
+      .rstn_i   (rstn_i),
+      .source_i (ctr_source_i),
+      .type_i   (ctr_type_i),
+      .valid_i  (ctr_valid_i),
+      .source_o (emitter_source),
+      .target_o (emitter_target),
+      .data_o   (emitter_data)
+  );
+
 endmodule

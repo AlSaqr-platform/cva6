@@ -873,6 +873,11 @@ package riscv;
     logic            v;
   } ctrsource_rv_t;
 
+  typedef struct packed {
+    logic [XLEN-1:1] pc;
+    logic            misp;
+  } ctrtarget_rv_t;
+
   typedef enum logic[3:0] {
     CTR_TYPE_NONE    = 4'd0,
     CTR_TYPE_EXC     = 4'd1,
@@ -889,6 +894,14 @@ package riscv;
     CTR_TYPE_INDLJMP = 4'd14,
     CTR_TYPE_DIRLJMP = 4'd15
   } ctr_type_t;
+
+  typedef struct packed {
+    logic [63:32] wpri1;
+    logic [31:16] cc;
+    logic         ccv;
+    logic [14:4]  wpri0;
+    ctr_type_t    cftype;
+  } ctrdata_rv_t;
 
   // Instruction Generation *incomplete*
   function automatic logic [31:0] jal(logic [4:0] rd, logic [20:0] imm);
