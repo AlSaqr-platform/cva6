@@ -84,10 +84,12 @@ module commit_stage
     output logic hfence_vvma_o,
     // Flush TLBs and pipeline - CONTROLLER
     output logic hfence_gvma_o,
-    // Control transfer source - CTR_UNIT
-    output riscv::ctrsource_rv_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_o,
-    // Control transfer type - CTR_UNIT
-    output riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_o
+    // Control transfer records PC - CTR_UNIT
+    output riscv::xlen_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_o,
+    // Control transfer records type - CTR_UNIT
+    output riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_o,
+    // Control transfer records valid - CTR_UNIT
+    output logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_o
 );
 
   // ila_0 i_ila_commit (
@@ -384,15 +386,16 @@ module commit_stage
   always_comb begin
     ctr_source_o = 'b0;
     ctr_type_o = 'b0;
+    ctr_valid_o = 'b0;
     if (exception_o.valid) begin
-      ctr_source_o[0].pc = commit_instr_i[0].pc[riscv::XLEN-1:1];
-      ctr_source_o[0].v = 1'b1;
+      ctr_source_o[0] = commit_instr_i[0].pc;
       ctr_type_o[0] = riscv::CTR_TYPE_EXC;
+      ctr_valid_o[0] = 'b1;
     end else begin
       for (int unsigned i = 0; i < CVA6Cfg.NrCommitPorts; i++) begin
-        ctr_source_o[i].pc = commit_instr_i[i].pc[riscv::XLEN-1:1];
-        ctr_source_o[i].v = commit_ack_o[i];
+        ctr_source_o[i] = commit_instr_i[i].pc;
         ctr_type_o[i] = commit_instr_i[i].cftype;
+        ctr_valid_o[i] = commit_ack_o[i];
       end
     end
   end

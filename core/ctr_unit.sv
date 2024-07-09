@@ -21,10 +21,12 @@ module ctr_unit
     input logic clk_i,
     // Asynchronous reset active low - SUBSYSTEM
     input logic rstn_i,
-    // The instructions that the core will retire - COMMIT_STAGE
-    input riscv::ctrsource_rv_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_i,
-    // Acknowledges of instruction retirements - COMMIT_STAGE
-    input riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_i
+    // - COMMIT_STAGE
+    input riscv::xlen_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_i,
+    // - COMMIT_STAGE
+    input riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_i,
+    // - COMMIT_STAGE
+    input logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_i
 );
 
 endmodule

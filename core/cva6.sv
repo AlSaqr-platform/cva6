@@ -443,8 +443,9 @@ module cva6
   riscv::pmpcfg_t [15:0] pmpcfg;
   logic [15:0][riscv::PLEN-3:0] pmpaddr;
   logic [31:0] mcountinhibit_csr_perf;
-  riscv::ctrsource_rv_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_commit_ctr;
+  riscv::xlen_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_commit_ctr;
   riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_commit_ctr;
+  logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_commit_ctr;
   // ----------------------------
   // Performance Counters <-> *
   // ----------------------------
@@ -916,6 +917,7 @@ module cva6
       .flush_commit_o    (flush_commit),
       .ctr_source_o      (ctr_source_commit_ctr),
       .ctr_type_o        (ctr_type_commit_ctr),
+      .ctr_valid_o       (ctr_valid_commit_ctr),
       .*
   );
 
@@ -1417,7 +1419,8 @@ module cva6
       .rstn_i       (rst_ni),
       // from commit stage
       .ctr_source_i (ctr_source_commit_ctr),
-      .ctr_type_i   (ctr_type_commit_ctr)
+      .ctr_type_i   (ctr_type_commit_ctr),
+      .ctr_valid_i  (ctr_valid_commit_ctr)
   );
 
   // -------------------
