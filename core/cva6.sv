@@ -214,6 +214,8 @@ module cva6
     CVA6Cfg.XFVec,
     CVA6Cfg.CvxifEn,
     CVA6Cfg.ZiCondExtEn,
+    CVA6Cfg.ZiCfiSSEn,
+    CVA6Cfg.ZiCfiLPEn,
     CVA6Cfg.RVSCLIC,
     // Extended
     bit'(RVF),
@@ -375,6 +377,7 @@ module cva6
   // EX <-> COMMIT
   // --------------
   // CSR Commit
+  riscv::xlen_t ssp;
   logic csr_commit_commit_ex;
   logic dirty_fp_state;
   logic dirty_v_state;
@@ -462,6 +465,8 @@ module cva6
   riscv::xlen_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_commit_ctr;
   riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_commit_ctr;
   logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_commit_ctr;
+  logic menv_sse, henv_sse, senv_sse;
+
   // ----------------------------
   // Performance Counters <-> *
   // ----------------------------
@@ -630,7 +635,10 @@ module cva6
       .hu_i            (hu),
       .mtopi_o         (mtopi),
       .stopi_o         (stopi),
-      .vstopi_o        (vstopi)
+      .vstopi_o        (vstopi),
+      .menv_sse_i      (menv_sse),
+      .henv_sse_i      (henv_sse),
+      .senv_sse_i      (senv_sse)
   );
 
   logic [NrWbPorts-1:0][TRANS_ID_BITS-1:0] trans_id_ex_id;
@@ -743,6 +751,7 @@ module cva6
       .fpu_rm_o              (fpu_rm_id_ex),
       // CSR
       .csr_valid_o           (csr_valid_id_ex),
+      .ssp_i                 (ssp),
       // CVXIF
       .x_issue_valid_o       (x_issue_valid_id_ex),
       .x_issue_ready_i       (x_issue_ready_ex_id),
@@ -1032,6 +1041,10 @@ module cva6
       .pmpcfg_o                (pmpcfg),
       .pmpaddr_o               (pmpaddr),
       .mcountinhibit_o         (mcountinhibit_csr_perf),
+      .menv_sse_o              (menv_sse),
+      .henv_sse_o              (henv_sse),
+      .senv_sse_o              (senv_sse),
+      .ssp_o                   (ssp),
       .debug_req_i,
       .ipi_i,
       .irq_i,
