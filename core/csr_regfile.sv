@@ -182,7 +182,15 @@ module csr_regfile
     // PMP addresses - ACC_DISPATCHER
     output logic [15:0][riscv::PLEN-3:0] pmpaddr_o,
     // TO_BE_COMPLETED - PERF_COUNTERS
-    output logic [31:0] mcountinhibit_o
+    output logic [31:0] mcountinhibit_o,
+    // menvcfg sse for zicfiss extension
+    output logic menv_sse_o,
+    // henvcfg sse for zicfiss extension
+    output logic henv_sse_o,
+    // senvcfg sse for zicfiss extension
+    output logic senv_sse_o,
+    // shadow stack pointer address
+    output logic [riscv::XLEN-1:0] ssp_o
 );
   // internal signal to keep track of access exceptions
   logic read_access_exception, update_access_exception, privilege_violation;
@@ -217,7 +225,8 @@ module csr_regfile
   // we are in debug
   logic debug_mode_q, debug_mode_d;
   logic mtvec_rst_load_q;  // used to determine whether we came out of reset
-
+  
+  riscv::xlen_t ssp_q, ssp_d;
   riscv::xlen_t dpc_q, dpc_d;
   riscv::xlen_t dscratch0_q, dscratch0_d;
   riscv::xlen_t dscratch1_q, dscratch1_d;
@@ -236,6 +245,7 @@ module csr_regfile
   riscv::xlen_t mtval_q, mtval_d;
   riscv::xlen_t mtinst_q, mtinst_d;
   riscv::xlen_t mtval2_q, mtval2_d;
+  riscv::envcfg_rv_t menvcfg, senvcfg, henvcfg;
   logic fiom_d, fiom_q;
 
   riscv::xlen_t stvec_q, stvec_d;
@@ -304,6 +314,13 @@ module csr_regfile
   assign fs_o = mstatus_q.fs;
   assign vfs_o = (CVA6Cfg.RVH) ? vsstatus_q.fs : riscv::Off;
   assign vs_o = mstatus_q.vs;
+  assign menvcfg.sse  = 1'b1;
+  assign senvcfg.sse  = 1'b1;
+  assign henvcfg.sse  = 1'b1;
+  assign menvcfg.fiom = fiom_q;
+  assign senvcfg.fiom = fiom_q;
+  assign henvcfg.fiom = fiom_q;
+  assign ssp_o        = ssp_q;
   // ----------------
   // CSR Read logic
   // ----------------
@@ -367,6 +384,20 @@ module csr_regfile
             csr_rdata = {{riscv::XLEN - 7{1'b0}}, fcsr_q.fprec};
           end else begin
             read_access_exception = 1'b1;
+          end
+        end
+        // Shadow Stack pointer read
+        riscv::CSR_SSP: begin
+          if(CVA6Cfg.ZiCfiSSEn) begin
+            if (priv_lvl_o != riscv::PRIV_LVL_M && menvcfg.sse == 1'b0) read_access_exception = 1'b1;
+            else if (priv_lvl_o != riscv::PRIV_LVL_U && senvcfg.sse == 1'b0) read_access_exception = 1'b1;
+                 else if (CVA6Cfg.RVH) begin
+              if (priv_lvl_o == riscv::PRIV_LVL_S && henvcfg.sse == 1'b0) // Read attempts in VS mode
+                virtual_read_access_exception = 1'b1;
+              else if (priv_lvl_o == riscv::PRIV_LVL_U && (henvcfg.sse == 1'b0 || senvcfg.sse == 1'b0)) // Read attempts in VU mode
+                virtual_read_access_exception = 1'b1;
+              else csr_rdata = ssp_q;
+            end else csr_rdata = ssp_q;
           end
         end
         // debug registers
@@ -948,6 +979,8 @@ module csr_regfile
     vscause_d = vscause_q;
     vstval_d = vstval_q;
     vsatp_d = vsatp_q;
+    
+    ssp_d = ssp_q;
 
     sepc_d = sepc_q;
     scause_d = scause_q;
@@ -1005,6 +1038,18 @@ module csr_regfile
             flush_o = 1'b1;
           end else begin
             update_access_exception = 1'b1;
+          end
+        end
+        // Shadow Stack pointer write
+        riscv::CSR_SSP: begin
+          if(CVA6Cfg.ZiCfiSSEn) begin
+            if (priv_lvl_o != riscv::PRIV_LVL_M && menv_sse_o == 1'b0) update_access_exception = 1'b1;
+            else if (priv_lvl_o != riscv::PRIV_LVL_U && senvcfg.sse == 1'b0) update_access_exception = 1'b1;
+            else if (CVA6Cfg.RVH) begin
+              if (priv_lvl_o == riscv::PRIV_LVL_S && henvcfg.sse == 1'b0) virtual_update_access_exception = 1'b1;
+              else if (priv_lvl_o == riscv::PRIV_LVL_U && (henvcfg.sse == 1'b0 || senvcfg.sse == 1'b0)) virtual_update_access_exception = 1'b1;
+                   else ssp_d = csr_wdata;
+            end else ssp_d = csr_wdata;
           end
         end
         riscv::CSR_FTRAN: begin
@@ -2111,6 +2156,8 @@ module csr_regfile
       CSR_SET:   csr_wdata = csr_wdata_i | csr_rdata;
       CSR_CLEAR: csr_wdata = (~csr_wdata_i) & csr_rdata;
       CSR_READ:  csr_we = 1'b0;
+      SSPUSH:    csr_wdata = ssp_q - (riscv::XLEN >> 3);
+      SSPOPCHK:  csr_wdata = ssp_q + (riscv::XLEN >> 3);
       MRET: begin
         // the return should not have any write or read side-effects
         csr_we   = 1'b0;
@@ -2424,6 +2471,7 @@ module csr_regfile
       end
       // machine mode registers
       mstatus_q        <= 64'b0;
+      ssp_q            <= 64'b0;
       // set to boot address + direct mode + 4 byte offset which is the initial trap
       mtvec_rst_load_q <= 1'b1;
       mtvec_q          <= '0;
@@ -2509,6 +2557,7 @@ module csr_regfile
         dscratch1_q  <= dscratch1_d;
       end
       // machine mode registers
+      ssp_q            <= ssp_d;
       mstatus_q        <= mstatus_d;
       mtvec_rst_load_q <= 1'b0;
       mtvec_q          <= mtvec_d;

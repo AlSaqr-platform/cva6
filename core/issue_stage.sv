@@ -81,6 +81,8 @@ module issue_stage
     output logic [2:0] fpu_rm_o,
     // CSR is valid - EX_STAGE
     output logic csr_valid_o,
+    // CSR shadow stack pointer - EX STAGE
+    input riscv::xlen_t ssp_i,
     // CVXIF FU is valid - EX_STAGE
     output logic x_issue_valid_o,
     // CVXIF is FU ready - EX_STAGE
