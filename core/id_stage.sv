@@ -120,7 +120,7 @@ module id_stage #(
 //        xsse = 0;
 //    end
 //  end
-  assign xsse = 1'b0;
+  assign xsse = 1'b1;
 
   if (CVA6Cfg.RVC) begin
     // ---------------------------------------------------------
