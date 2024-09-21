@@ -197,6 +197,17 @@ module scoreboard #(
         else if(CVA6Cfg.FpPresent && (mem_q[trans_id_i[i]].sbe.fu == ariane_pkg::FPU || mem_q[trans_id_i[i]].sbe.fu == ariane_pkg::FPU_VEC)) begin
           mem_n[trans_id_i[i]].sbe.ex.cause = ex_i[i].cause;
         end
+        // write the control transfer type in case of branch taken/not taken, or in case any of there
+        // functional units in the execute stage generated an exception
+        if (ex_i[i].valid) begin
+          mem_n[trans_id_i[i]].sbe.cftype = riscv::CTR_TYPE_EXC;
+        end else if (resolved_branch_i.valid && resolved_branch_i.cf_type == ariane_pkg::Branch) begin
+          if (resolved_branch_i.is_taken) begin
+            mem_n[trans_id_i[i]].sbe.cftype = riscv::CTR_TYPE_TKBR;
+          end else begin
+            mem_n[trans_id_i[i]].sbe.cftype = riscv::CTR_TYPE_NTBR;
+          end
+        end
       end
     end
 

@@ -156,7 +156,6 @@ module issue_stage
   assign issue_instr_o    = issue_instr_sb_iro;
   assign issue_instr_hs_o = issue_instr_valid_sb_iro & issue_ack_iro_sb;
 
-
   // ---------------------------------------------------------
   // 2. Manage instructions in a scoreboard
   // ---------------------------------------------------------

@@ -142,6 +142,11 @@ module issue_read_operands
   // forwarding signals
   logic forward_rs1, forward_rs2, forward_rs3;
 
+  // Control Transfer Record
+  riscv::xlen_t ctr_source;
+  riscv::ctr_type_t  ctr_type;
+  logic ctr_valid;
+
   // original instruction
   riscv::instruction_t orig_instr;
   assign orig_instr          = riscv::instruction_t'(orig_instr_i);
