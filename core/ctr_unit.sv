@@ -29,7 +29,7 @@ module ctr_unit
     // Control Transfer Records target register - CTR_UNIT
     output      riscv::ctrtarget_rv_t emitter_target_o,
     // Control Transfer Records data register - CTR_UNIT
-    output      riscv::ctrdata_rv_t emitter_data_o,
+    output      riscv::ctr_type_t emitter_data_o,
     // C2ontrol Transfer Records instr register - CTR_UNIT
     output      logic [31:0] emitter_instr_o,
     // Privilege execution level - CTR_UNIT
@@ -98,7 +98,7 @@ module ctr_unit
   always_comb begin
     emitter_source_o = 'b0;
     emitter_target_o = 'b0;
-    emitter_data_o = 'b0;
+    emitter_data_o = riscv::CTR_TYPE_NONE;
     emitter_instr_o = 'b0;
     if (pending_valid_q && (ctr_commit_port_1_i.valid || ctr_commit_port_2_i.valid)) begin
       emitter_source_o.pc = pending_source_q[riscv::XLEN-1:1];
@@ -107,7 +107,7 @@ module ctr_unit
       emitter_target_o.pc = ctr_sbe_entry_out.ctr_source[riscv::XLEN-1:1];
       emitter_target_o.misp = 'b0;
       // Cycle counting is unimplemented.
-      emitter_data_o.cftype = pending_type_q;
+      emitter_data_o = pending_type_q;
       emitter_instr_o = pending_instr_q;
     end
   end
@@ -118,7 +118,7 @@ module ctr_unit
       pending_type_q <= riscv::CTR_TYPE_NONE;
       pending_instr_q <= 'b0;
       pending_valid_q <= 'b0;
-      pending_priv_lvl_q <= 'b0;
+      pending_priv_lvl_q <= riscv::PRIV_LVL_M;
     end else begin
       pending_source_q <= pending_source_d;
       pending_type_q <= pending_type_d;

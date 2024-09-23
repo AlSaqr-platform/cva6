@@ -158,7 +158,7 @@ module cva6
     // Control Transfer Records target register - CTR_UNIT
     output riscv::ctrtarget_rv_t emitter_target_o,
     // Control Transfer Records data register - CTR_UNIT
-    output riscv::ctrdata_rv_t emitter_data_o,
+    output riscv::ctr_type_t emitter_data_o,
     // Control Transfer Records instr register - CTR_UNIT
     output logic [31:0] emitter_instr_o,
     // Privilege execution level - CTR_UNIT
@@ -544,7 +544,7 @@ module cva6
   logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid;
   logic [CVA6Cfg.NrCommitPorts-1:0] [31:0] ctr_instr;
   riscv::ctrsource_rv_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source;
-  riscv::ctrdata_rv_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type;
+  riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (~rst_ni) begin
