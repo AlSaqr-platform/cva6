@@ -249,6 +249,8 @@ sources:
       - core/axi_shim.sv
       - core/acc_dispatcher.sv
       - core/cva6_rvfi_probes.sv
+      - core/fifo_dp_v3.sv
+      - core/ctr_unit.sv
 
       # What is "frontend"?
       - core/frontend/btb.sv

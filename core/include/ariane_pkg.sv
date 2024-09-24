@@ -759,7 +759,25 @@ package ariane_pkg;
     logic                     is_compressed; // signals a compressed instructions, we need this information at the commit stage if
                                              // we want jump accordingly e.g.: +4, +2
     logic vfp;  // is this a vector floating-point instruction?
+    riscv::ctr_type_t cftype; // 4-bit control transfer type, encoded according to the RISC-V Control Transfer Records extension.
+    logic [31:0] opcode;
   } scoreboard_entry_t;
+
+  // ---------------
+  // Ctr strucutres
+  // ---------------
+  typedef struct packed {
+     riscv::xlen_t        ctr_source;
+     riscv::ctr_type_t    ctr_type;
+     logic [31:0]         ctr_instr;
+     riscv::priv_lvl_t    priv_lvl;
+     logic                valid;
+  } ctr_commit_port_t;
+
+  typedef struct packed {
+     ctr_commit_port_t port_1;
+     ctr_commit_port_t port_2;
+  } ctr_scoreboard_t ;
 
   // ---------------
   // MMU instanciation

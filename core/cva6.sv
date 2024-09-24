@@ -152,7 +152,17 @@ module cva6
     // noc request, can be AXI or OpenPiton - SUBSYSTEM
     output noc_req_t noc_req_o,
     // noc response, can be AXI or OpenPiton - SUBSYSTEM
-    input noc_resp_t noc_resp_i
+    input noc_resp_t noc_resp_i,
+    // Control Transfer Records source register - CTR_UNIT
+    output riscv::ctrsource_rv_t emitter_source_o,
+    // Control Transfer Records target register - CTR_UNIT
+    output riscv::ctrtarget_rv_t emitter_target_o,
+    // Control Transfer Records data register - CTR_UNIT
+    output riscv::ctr_type_t emitter_data_o,
+    // Control Transfer Records instr register - CTR_UNIT
+    output logic [31:0] emitter_instr_o,
+    // Privilege execution level - CTR_UNIT
+    output riscv::priv_lvl_t priv_lvl_o
 );
 
   // ------------------------------------------
@@ -449,6 +459,9 @@ module cva6
   logic [riscv::XLEN-1:0]   mtopi;
   logic [riscv::XLEN-1:0]   stopi;
   logic [riscv::XLEN-1:0]   vstopi;
+  riscv::xlen_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_commit_ctr;
+  riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_commit_ctr;
+  logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_commit_ctr;
   // ----------------------------
   // Performance Counters <-> *
   // ----------------------------
@@ -526,6 +539,12 @@ module cva6
   logic          [           63:0]                       inval_addr;
   logic                                                  inval_valid;
   logic                                                  inval_ready;
+
+  // CTR signals
+  logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid;
+  logic [CVA6Cfg.NrCommitPorts-1:0] [31:0] ctr_instr;
+  riscv::ctrsource_rv_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source;
+  riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (~rst_ni) begin
@@ -921,6 +940,9 @@ module cva6
       .hfence_gvma_o     (hfence_gvma_commit_controller),
       .fence_t_o         (fence_t_commit_controller),
       .flush_commit_o    (flush_commit),
+      .ctr_source_o      (ctr_source_commit_ctr),
+      .ctr_type_o        (ctr_type_commit_ctr),
+      .ctr_valid_o       (ctr_valid_commit_ctr),
       .*
   );
 
@@ -1614,5 +1636,50 @@ module cva6
     );
 
   end  //IsRVFI
+
+  // ------------------------
+  // Control Transfer Records
+  // ------------------------
+  // Handle data interface to be the control transfer records unit
+
+  for(genvar i=0;i<CVA6Cfg.NrCommitPorts;i++) begin
+     always_comb begin
+       ctr_valid[i]  = commit_instr_id_commit[i].valid & commit_ack;
+       ctr_instr[i]  = commit_instr_id_commit[i].opcode;
+       ctr_source[i] = commit_instr_id_commit[i].pc;
+       if (commit_instr_id_commit[i].ex.valid)
+         ctr_type[i]   = riscv::CTR_TYPE_EXC;
+       else
+         ctr_type[i]   = commit_instr_id_commit[i].cftype;
+     end
+  end
+
+  ctr_commit_port_t ctr_commit_port_1, ctr_commit_port_2;
+
+  assign ctr_commit_port_1 = {
+     ctr_source: ctr_source[0],
+     ctr_type  : ctr_type[0],
+     ctr_instr : ctr_instr[0],
+     priv_lvl  : priv_lvl,
+     valid     : ctr_valid[0]
+  };
+
+  assign ctr_commit_port_2 = {
+     ctr_source: ctr_source[1],
+     ctr_type  : ctr_type[1],
+     ctr_instr : ctr_instr[1],
+     priv_lvl  : priv_lvl,
+     valid     : ctr_valid[1]
+  };
+
+  ctr_unit #(
+      .CVA6Cfg(CVA6Cfg)
+  ) i_ctr_unit (
+      .clk_i               ( clk_i             ),
+      .rst_ni              ( rst_ni            ),
+      .ctr_commit_port_1_i ( ctr_commit_port_1 ),
+      .ctr_commit_port_2_i ( ctr_commit_port_2 ),
+      .*
+  );
 
 endmodule  // ariane
