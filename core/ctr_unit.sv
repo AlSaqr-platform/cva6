@@ -46,9 +46,11 @@ module ctr_unit
   ctr_commit_port_t  ctr_sbe_entry_out;
 
   localparam int ReqFifoWidth = $bits(ctr_commit_port_t) ;
-  logic fifo_empty, fifo_full;
+  logic fifo_empty, fifo_full, fifo_out_valid;
 
   assign priv_lvl_o = pending_priv_lvl_q;
+  assign fifo_out_valid = ~fifo_empty;
+
 
   // Dual port fifo to serialize CVA6 commit ports
   fifo_dp_v3 #(
@@ -68,7 +70,7 @@ module ctr_unit
      .data_port_1_i ( ctr_commit_port_2_i                     ),
      .push_port_1_i ( ~fifo_full && ctr_commit_port_2_i.valid ),
      .data_o        ( ctr_sbe_entry_out                       ),
-     .pop_i         ( ~fifo_empty                             )
+     .pop_i         ( fifo_out_valid                          )
   );
 
   always_comb begin
@@ -78,7 +80,7 @@ module ctr_unit
     pending_valid_d = 'b0;
     pending_instr_d = 'b0;
     pending_priv_lvl_d = riscv::PRIV_LVL_M;
-    if (~(ctr_commit_port_1_i.valid || ctr_commit_port_2_i.valid)) begin
+    if (~fifo_out_valid) begin
       // If no instructions are retired in the current cycle, keep the old values.
       pending_source_d = pending_source_q;
       pending_type_d = pending_type_q;
@@ -89,7 +91,7 @@ module ctr_unit
       // Record the most recent control transfer with unknown target address.
       pending_source_d = ctr_sbe_entry_out.ctr_source;
       pending_type_d = ctr_sbe_entry_out.ctr_type;
-      pending_valid_d = (ctr_commit_port_1_i.valid || ctr_commit_port_2_i.valid);
+      pending_valid_d = fifo_out_valid;
       pending_instr_d = ctr_sbe_entry_out.ctr_instr;
       pending_priv_lvl_d = ctr_sbe_entry_out.priv_lvl;
     end
@@ -100,7 +102,7 @@ module ctr_unit
     emitter_target_o = 'b0;
     emitter_data_o = riscv::CTR_TYPE_NONE;
     emitter_instr_o = 'b0;
-    if (pending_valid_q && (ctr_commit_port_1_i.valid || ctr_commit_port_2_i.valid)) begin
+    if (pending_valid_q && fifo_out_valid) begin
       emitter_source_o.pc = pending_source_q[riscv::XLEN-1:1];
       emitter_source_o.v = pending_valid_q;
       // The MISP bit is unimplemented.
