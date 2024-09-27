@@ -603,7 +603,8 @@ module ex_stage
 
   // Mux between load exception and shadow stack pop check ex
   // Check if swapping for the whole load_exception cycles is a problem
-  assign load_exception_o = ssv_loaded ? sspopchk_ex : ld_ex;
+  //assign load_exception_o = ssv_loaded ? sspopchk_ex : ld_ex;
+  assign load_exception_o = ld_ex;
 
   always_comb begin : sspopchk
     sspopchk_ex = '0;
