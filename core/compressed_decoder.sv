@@ -429,7 +429,7 @@ module compressed_decoder #(
                 instr_o = {
                   12'b110011011100,
                   7'b00101,
-                  3'h100,
+                  3'b100,
                   5'b00000,
                   riscv::OpcodeSystem
                 };
