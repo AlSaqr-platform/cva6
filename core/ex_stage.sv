@@ -214,7 +214,9 @@ module ex_stage
     // Information dedicated to RVFI - RVFI
     output lsu_ctrl_t                                                   rvfi_lsu_ctrl_o,
     // Information dedicated to RVFI - RVFI
-    output                         [  riscv::PLEN-1:0]                  rvfi_mem_paddr_o
+    output                         [  riscv::PLEN-1:0]                  rvfi_mem_paddr_o,
+    // Shadow Stack Enabled state
+    input logic                                                         xsse_i
 );
 
   // -------------------------
@@ -604,15 +606,25 @@ module ex_stage
   // Mux between load exception and shadow stack pop check ex
   // Check if swapping for the whole load_exception cycles is a problem
   //assign load_exception_o = ssv_loaded ? sspopchk_ex : ld_ex;
-  assign load_exception_o = ld_ex;
+  always_comb begin : mux_ld_sspopchk_ex
+    load_exception_o = ld_ex;
+    if (CVA6Cfg.ZiCfiSSEn) begin
+      if(ssv_loaded && xsse_i)
+        load_exception_o = sspopchk_ex;
+      else 
+        load_exception_o = ld_ex;
+    end 
+  end
+  //assign load_exception_o = ld_ex;
 
   always_comb begin : sspopchk
     sspopchk_ex = '0;
-    if (ssv_loaded && link_reg != load_result_o) begin
-      sspopchk_ex.valid = 1'b1;
-      sspopchk_ex.cause = riscv::SOFTWARE_CHECK;
-      sspopchk_ex.tval = 3; // Lift it to riscv.pkg?
-    end
+    if (CVA6Cfg.ZiCfiSSEn)
+      if (ssv_loaded && xsse_i && link_reg != load_result_o) begin
+        sspopchk_ex.valid = 1'b1;
+        sspopchk_ex.cause = riscv::SOFTWARE_CHECK;
+        sspopchk_ex.tval = 3; // Lift it to riscv.pkg?
+      end
   end
 
 endmodule

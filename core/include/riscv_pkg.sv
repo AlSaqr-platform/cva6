@@ -84,11 +84,9 @@ package riscv;
   typedef struct packed {
     logic sd;  // signal dirty state - read-only
     //logic [62:34] wpri7;  // writes preserved reads ignored
-    logic [62:34] wpri7;
     logic [62:34] wpri6;  // writes preserved reads ignored
     xlen_e uxl;  // variable user mode xlen - hardwired to zero
     //logic spelp;  // hold previous ELP in S-mode
-    logic spelp;
     logic [11:0] wpri5;  // writes preserved reads ignored
     logic mxr;  // make executable readable
     logic sum;  // permit supervisor user memory access
@@ -130,8 +128,6 @@ package riscv;
     logic [62:40] wpri4;  // writes preserved reads ignored
     //logic [62:42] wpri5;  // writes preserved reads ignored
     //logic mpelp;  // hold previous ELP in M-mode
-    logic [62:42] wpri5;
-    logic mpelp;
     logic mpv;  // machine previous virtualization mode
     logic gva;  // variable set when trap writes to stval
     logic mbe;  // endianness memory accesses made from M-mode
@@ -139,8 +135,7 @@ package riscv;
     xlen_e sxl;  // variable supervisor mode xlen - hardwired to zero
     xlen_e uxl;  // variable user mode xlen - hardwired to zero
     logic [8:0] wpri3;  // writes preserved reads ignored
-    //logic spelp; // hold previous ELP in S-mode
-    logic spelp; 
+    //logic spelp; // hold previous ELP in S-mode 
     logic tsr;  // trap sret
     logic tw;  // time wait
     logic tvm;  // trap virtual memory
