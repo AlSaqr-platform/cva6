@@ -407,14 +407,8 @@ module compressed_decoder #(
                 5'h02,
                 riscv::OpcodeOpImm
               };
-            end
-
-            if ({instr_i[12], instr_i[6:2]} == 6'b0) illegal_instr_o = 1'b1;
-  
-            // In case of c.ssp convert it in ssp x1
-            // In case of c.sspopchk convert in sspopchk x5
-            if (CVA6Cfg.ZiCfiSSEn) begin
-              if (instr_i[12:2] == 6'h020) begin
+            end else if (CVA6Cfg.ZiCfiSSEn) begin
+              if (instr_i[12:2] == 10'h020) begin
                 instr_o = {
                   7'b1100111,
                   5'b00001,
@@ -423,18 +417,17 @@ module compressed_decoder #(
                   5'h00,
                   riscv::OpcodeSystem
                 };
-              end
-
-              if (instr_i[12:2] == 6'h090) begin
+              end else if (instr_i[12:2] == 10'h0A0) begin
                 instr_o = {
                   12'b110011011100,
-                  7'b00101,
+                  5'b00101,
                   3'b100,
                   5'b00000,
                   riscv::OpcodeSystem
                 };
               end
-            end          
+            end else if ({instr_i[12], instr_i[6:2]} == 6'b0) illegal_instr_o = 1'b1;
+            //if ({instr_i[12], instr_i[6:2]} == 6'b0) illegal_instr_o = 1'b1;       
           end
 
           riscv::OpcodeC1MiscAlu: begin

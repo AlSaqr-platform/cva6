@@ -396,6 +396,10 @@ module cva6
   // --------------
   scoreboard_entry_t [CVA6ExtendCfg.NrCommitPorts-1:0] commit_instr_id_commit;
   // --------------
+  // ID <-> EX
+  // --------------
+  logic xsse;
+  // --------------
   // RVFI
   // --------------
   logic [TRANS_ID_BITS-1:0] rvfi_issue_pointer;
@@ -638,7 +642,8 @@ module cva6
       .vstopi_o        (vstopi),
       .menv_sse_i      (menv_sse),
       .henv_sse_i      (henv_sse),
-      .senv_sse_i      (senv_sse)
+      .senv_sse_i      (senv_sse),
+      .xsse_o          (xsse)
   );
 
   logic [NrWbPorts-1:0][TRANS_ID_BITS-1:0] trans_id_ex_id;
@@ -902,7 +907,9 @@ module cva6
       .pmpaddr_i               (pmpaddr),
       //RVFI
       .rvfi_lsu_ctrl_o         (rvfi_lsu_ctrl),
-      .rvfi_mem_paddr_o        (rvfi_mem_paddr)
+      .rvfi_mem_paddr_o        (rvfi_mem_paddr),
+      // CFI
+      .xsse_i                  (xsse)
   );
 
   // ---------

@@ -263,7 +263,9 @@ module csr_regfile
   riscv::xlen_t mtval_q, mtval_d;
   riscv::xlen_t mtinst_q, mtinst_d;
   riscv::xlen_t mtval2_q, mtval2_d;
-  riscv::envcfg_rv_t menvcfg, senvcfg, henvcfg;
+  logic menv_sse_d, menv_sse_q;
+  logic senv_sse_d, senv_sse_q;
+  logic henv_sse_d, henv_sse_q;
   logic fiom_d, fiom_q;
 
   riscv::xlen_t stvec_q, stvec_d;
@@ -332,13 +334,10 @@ module csr_regfile
   assign fs_o = mstatus_q.fs;
   assign vfs_o = (CVA6Cfg.RVH) ? vsstatus_q.fs : riscv::Off;
   assign vs_o = mstatus_q.vs;
-  assign menvcfg.sse  = 1'b1;
-  assign senvcfg.sse  = 1'b1;
-  assign henvcfg.sse  = 1'b1;
-  assign menvcfg.fiom = fiom_q;
-  assign senvcfg.fiom = fiom_q;
-  assign henvcfg.fiom = fiom_q;
-  assign ssp_o        = ssp_q;
+  assign senv_sse_o = senv_sse_q;
+  assign henv_sse_o = henv_sse_q;
+  assign menv_sse_o = menv_sse_q;
+  assign ssp_o      = ssp_q;
   // ----------------
   // CSR Read logic
   // ----------------
@@ -410,12 +409,12 @@ module csr_regfile
         // Shadow Stack pointer read
         riscv::CSR_SSP: begin
           if(CVA6Cfg.ZiCfiSSEn) begin
-            if (priv_lvl_o != riscv::PRIV_LVL_M && menvcfg.sse == 1'b0) read_access_exception = 1'b1;
-            else if (priv_lvl_o != riscv::PRIV_LVL_U && senvcfg.sse == 1'b0) read_access_exception = 1'b1;
+            if (priv_lvl_o != riscv::PRIV_LVL_M && menv_sse_q == 1'b0) read_access_exception = 1'b1;
+            else if (priv_lvl_o != riscv::PRIV_LVL_U && senv_sse_q == 1'b0) read_access_exception = 1'b1;
                  else if (CVA6Cfg.RVH) begin
-              if (priv_lvl_o == riscv::PRIV_LVL_S && henvcfg.sse == 1'b0) // Read attempts in VS mode
+              if (priv_lvl_o == riscv::PRIV_LVL_S && henv_sse_q == 1'b0) // Read attempts in VS mode
                 virtual_read_access_exception = 1'b1;
-              else if (priv_lvl_o == riscv::PRIV_LVL_U && (henvcfg.sse == 1'b0 || senvcfg.sse == 1'b0)) // Read attempts in VU mode
+              else if (priv_lvl_o == riscv::PRIV_LVL_U && (henv_sse_q == 1'b0 || senv_sse_q == 1'b0)) // Read attempts in VU mode
                 virtual_read_access_exception = 1'b1;
               else csr_rdata = ssp_q;
             end else csr_rdata = ssp_q;
@@ -551,9 +550,11 @@ module csr_regfile
             read_access_exception = 1'b1;
           end
         end
-        riscv::CSR_SENVCFG:
-        if (CVA6Cfg.RVS) csr_rdata = '0 | fiom_q;
-        else read_access_exception = 1'b1;
+        riscv::CSR_SENVCFG: 
+        if (CVA6Cfg.RVS) begin
+          if (CVA6Cfg.ZiCfiSSEn) csr_rdata = '0 | {senv_sse_q, {2'b0}, fiom_q};
+          else csr_rdata = '0 | fiom_q;
+        end else read_access_exception = 1'b1;
         // hypervisor mode registers
         riscv::CSR_HSTATUS:
         if (CVA6Cfg.RVH) csr_rdata = hstatus_q[riscv::XLEN-1:0];
@@ -588,9 +589,11 @@ module csr_regfile
         riscv::CSR_HGEIP:
         if (CVA6Cfg.RVH) csr_rdata = '0;
         else read_access_exception = 1'b1;
-        riscv::CSR_HENVCFG:
-        if (CVA6Cfg.RVH) csr_rdata = '0 | fiom_q;
-        else read_access_exception = 1'b1;
+        riscv::CSR_HENVCFG: 
+        if (CVA6Cfg.RVH) begin
+          if (CVA6Cfg.ZiCfiSSEn) csr_rdata = '0 | {henv_sse_q, {2'b0}, fiom_q};
+          else csr_rdata = '0 | fiom_q;
+        end else read_access_exception = 1'b1;       
         riscv::CSR_HGATP: begin
           if (CVA6Cfg.RVH) begin
             // intercept reads to HGATP if in HS-Mode and TVM is enabled
@@ -654,10 +657,11 @@ module csr_regfile
             read_access_exception = 1'b1;
           end
         end
-        riscv::CSR_MENVCFG: begin
-          if (CVA6Cfg.RVU) csr_rdata = '0 | fiom_q;
-          else read_access_exception = 1'b1;
-        end
+        riscv::CSR_MENVCFG:
+        if (CVA6Cfg.RVU) begin
+          if (CVA6Cfg.ZiCfiSSEn) csr_rdata = '0 | {menv_sse_q, {2'b0}, fiom_q};
+          else csr_rdata = '0 | fiom_q;
+        end else read_access_exception = 1'b1;
         riscv::CSR_MENVCFGH: begin
           if (CVA6Cfg.RVU && riscv::XLEN == 32) csr_rdata = '0;
           else read_access_exception = 1'b1;
@@ -1098,6 +1102,9 @@ module csr_regfile
     vsatp_d = vsatp_q;
     
     ssp_d = ssp_q;
+    senv_sse_d = senv_sse_q;
+    henv_sse_d = henv_sse_q;
+    menv_sse_d = menv_sse_q;
 
     sepc_d = sepc_q;
     scause_d = scause_q;
@@ -1172,11 +1179,11 @@ module csr_regfile
         // Shadow Stack pointer write
         riscv::CSR_SSP: begin
           if(CVA6Cfg.ZiCfiSSEn) begin
-            if (priv_lvl_o != riscv::PRIV_LVL_M && menv_sse_o == 1'b0) update_access_exception = 1'b1;
-            else if (priv_lvl_o != riscv::PRIV_LVL_U && senvcfg.sse == 1'b0) update_access_exception = 1'b1;
+            if (priv_lvl_o != riscv::PRIV_LVL_M && menv_sse_q == 1'b0) update_access_exception = 1'b1;
+            else if (priv_lvl_o != riscv::PRIV_LVL_U && senv_sse_q == 1'b0) update_access_exception = 1'b1;
             else if (CVA6Cfg.RVH) begin
-              if (priv_lvl_o == riscv::PRIV_LVL_S && henvcfg.sse == 1'b0) virtual_update_access_exception = 1'b1;
-              else if (priv_lvl_o == riscv::PRIV_LVL_U && (henvcfg.sse == 1'b0 || senvcfg.sse == 1'b0)) virtual_update_access_exception = 1'b1;
+              if (priv_lvl_o == riscv::PRIV_LVL_S && henv_sse_q == 1'b0) virtual_update_access_exception = 1'b1;
+              else if (priv_lvl_o == riscv::PRIV_LVL_U && (henv_sse_q == 1'b0 || senv_sse_q == 1'b0)) virtual_update_access_exception = 1'b1;
                    else ssp_d = csr_wdata;
             end else ssp_d = csr_wdata;
           end
@@ -1393,7 +1400,11 @@ module csr_regfile
           end
         end
         riscv::CSR_SENVCFG:
-        if (CVA6Cfg.RVU) fiom_d = csr_wdata[0];
+        if (CVA6Cfg.RVU) 
+          if (CVA6Cfg.ZiCfiSSEn) begin
+            fiom_d = csr_wdata[0];
+            senv_sse_d = csr_wdata[3];
+          end else fiom_d = csr_wdata[0];
         else update_access_exception = 1'b1;
         //hypervisor mode registers
         riscv::CSR_HSTATUS: begin
@@ -1507,7 +1518,11 @@ module csr_regfile
           end
         end
         riscv::CSR_HENVCFG:
-        if (CVA6Cfg.RVH) fiom_d = csr_wdata[0];
+        if (CVA6Cfg.RVH) 
+          if (CVA6Cfg.ZiCfiSSEn) begin
+            fiom_d = csr_wdata[0];
+            henv_sse_d = csr_wdata[3];
+          end else fiom_d = csr_wdata[0];
         else update_access_exception = 1'b1;
         riscv::CSR_MSTATUS: begin
           mstatus_d    = {{64 - riscv::XLEN{1'b0}}, csr_wdata};
@@ -1630,7 +1645,13 @@ module csr_regfile
             mip_d = (mip_q & ~mask) | (csr_wdata & mask);
           end
         end
-        riscv::CSR_MENVCFG: if (CVA6Cfg.RVU) fiom_d = csr_wdata[0];
+        riscv::CSR_MENVCFG:
+        if (CVA6Cfg.RVU)  
+          if (CVA6Cfg.ZiCfiSSEn) begin
+            fiom_d = csr_wdata[0];
+            menv_sse_d = csr_wdata[3];
+          end
+        else fiom_d = csr_wdata[0];
         riscv::CSR_MENVCFGH: begin
           if (!CVA6Cfg.RVU || riscv::XLEN != 32) update_access_exception = 1'b1;
         end
@@ -2718,7 +2739,6 @@ module csr_regfile
       end
       // machine mode registers
       mstatus_q        <= 64'b0;
-      ssp_q            <= 64'b0;
       // set to boot address + direct mode + 4 byte offset which is the initial trap
       mtvec_rst_load_q <= 1'b1;
       mtvec_q          <= '0;
@@ -2743,6 +2763,13 @@ module csr_regfile
       acc_cons_q       <= {{riscv::XLEN - 1{1'b0}}, CVA6Cfg.EnableAccelerator};
       fence_t_pad_q    <= {riscv::XLEN{1'b0}};
       fence_t_ceil_q   <= {riscv::XLEN{1'b0}};
+      // CFI registers
+      if (CVA6Cfg.ZiCfiSSEn) begin
+        senv_sse_q <= 1'b0;
+        menv_sse_q <= 1'b0;
+        henv_sse_q <= 1'b0;
+        ssp_q      <= 64'b0;
+      end
       // supervisor mode registers
       if (CVA6Cfg.RVS) begin
         medeleg_q    <= {riscv::XLEN{1'b0}};
@@ -2808,7 +2835,6 @@ module csr_regfile
         dscratch1_q  <= dscratch1_d;
       end
       // machine mode registers
-      ssp_q            <= ssp_d;
       mstatus_q        <= mstatus_d;
       mtvec_rst_load_q <= 1'b0;
       mtvec_q          <= mtvec_d;
@@ -2833,6 +2859,12 @@ module csr_regfile
       acc_cons_q      <= acc_cons_d;
       fence_t_pad_q   <= fence_t_pad_d;
       fence_t_ceil_q  <= fence_t_ceil_d;
+      if (CVA6Cfg.ZiCfiSSEn) begin
+        ssp_q         <= ssp_d;
+        senv_sse_q    <= senv_sse_d;
+        menv_sse_q    <= menv_sse_d;
+        henv_sse_q    <= henv_sse_d;
+      end
       // supervisor mode registers
       if (CVA6Cfg.RVS) begin
         medeleg_q    <= medeleg_d;
