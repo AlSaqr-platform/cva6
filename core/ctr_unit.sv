@@ -54,9 +54,10 @@ module ctr_unit
 
   // Dual port fifo to serialize CVA6 commit ports
   fifo_dp_v3 #(
-     .FALL_THROUGH  ( 1'b1         ),
-     .DATA_WIDTH    ( ReqFifoWidth ),
-     .DEPTH         ( 4            )
+     .FALL_THROUGH  ( 1'b1              ),
+     .DATA_WIDTH    ( ReqFifoWidth      ),
+     .DEPTH         ( 4                ),
+     .dtype         ( ctr_commit_port_t )
   ) dual_port_fifo  (
      .clk_i         ( clk_i                                   ),
      .rst_ni        ( rst_ni                                  ),
@@ -74,43 +75,19 @@ module ctr_unit
   );
 
   always_comb begin
-    // By default, we don't have any control transfer pending.
-    pending_source_d = 'b0;
-    pending_type_d = riscv::CTR_TYPE_NONE;
-    pending_valid_d = 'b0;
-    pending_instr_d = 'b0;
-    pending_priv_lvl_d = riscv::PRIV_LVL_M;
-    if (~fifo_out_valid) begin
-      // If no instructions are retired in the current cycle, keep the old values.
-      pending_source_d = pending_source_q;
-      pending_type_d = pending_type_q;
-      pending_valid_d = pending_valid_q;
-      pending_instr_d = pending_instr_q;
-      pending_priv_lvl_d = pending_priv_lvl_q;
-    end else begin
+   // By default, we don't have any control transfer pending.
+    pending_source_d = pending_source_q;
+    pending_type_d = pending_type_q;
+    pending_valid_d = pending_valid_q;
+    pending_instr_d = pending_instr_q;
+    pending_priv_lvl_d = pending_priv_lvl_q;
+    if (fifo_out_valid) begin
       // Record the most recent control transfer with unknown target address.
       pending_source_d = ctr_sbe_entry_out.ctr_source;
       pending_type_d = ctr_sbe_entry_out.ctr_type;
       pending_valid_d = fifo_out_valid;
       pending_instr_d = ctr_sbe_entry_out.ctr_instr;
       pending_priv_lvl_d = ctr_sbe_entry_out.priv_lvl;
-    end
-  end
-
-  always_comb begin
-    emitter_source_o = 'b0;
-    emitter_target_o = 'b0;
-    emitter_data_o = riscv::CTR_TYPE_NONE;
-    emitter_instr_o = 'b0;
-    if (pending_valid_q && fifo_out_valid) begin
-      emitter_source_o.pc = pending_source_q[riscv::XLEN-1:1];
-      emitter_source_o.v = pending_valid_q;
-      // The MISP bit is unimplemented.
-      emitter_target_o.pc = ctr_sbe_entry_out.ctr_source[riscv::XLEN-1:1];
-      emitter_target_o.misp = 'b0;
-      // Cycle counting is unimplemented.
-      emitter_data_o = pending_type_q;
-      emitter_instr_o = pending_instr_q;
     end
   end
 
@@ -127,6 +104,23 @@ module ctr_unit
       pending_priv_lvl_q <= pending_priv_lvl_d;
       pending_instr_q <= pending_instr_d;
       pending_valid_q <= pending_valid_d;
+    end
+  end
+
+  always_comb begin
+    emitter_source_o = 'b0;
+    emitter_target_o = 'b0;
+    emitter_data_o = riscv::CTR_TYPE_NONE;
+    emitter_instr_o = 'b0;
+    if (fifo_out_valid) begin
+      emitter_source_o.pc = pending_source_q[riscv::XLEN-1:1];
+      emitter_source_o.v = pending_valid_q;
+      // The MISP bit is unimplemented.
+      emitter_target_o.pc = ctr_sbe_entry_out.ctr_source[riscv::XLEN-1:1];
+      emitter_target_o.misp = 'b0;
+      // Cycle counting is unimplemented.
+      emitter_data_o = pending_type_q;
+      emitter_instr_o = pending_instr_q;
     end
   end
 

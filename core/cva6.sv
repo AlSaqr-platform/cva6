@@ -1644,7 +1644,7 @@ module cva6
 
   for(genvar i=0;i<CVA6Cfg.NrCommitPorts;i++) begin
      always_comb begin
-       ctr_valid[i]  = commit_instr_id_commit[i].valid & commit_ack;
+       ctr_valid[i]  = commit_ack[i];
        ctr_instr[i]  = commit_instr_id_commit[i].opcode;
        ctr_source[i] = commit_instr_id_commit[i].pc;
        if (commit_instr_id_commit[i].ex.valid)

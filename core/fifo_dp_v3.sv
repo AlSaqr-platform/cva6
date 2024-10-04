@@ -1,12 +1,30 @@
-// Copyright 2018 ETH Zurich and University of Bologna.
+// Copyright 2024 ETH Zurich and University of Bologna.
 // Copyright and related rights are licensed under the Solderpad Hardware
 // License, Version 0.51 (the "License"); you may not use this file except in
-// compliance with the License. You may obtain a copy of the License at
+// compliance with the License.  You may obtain a copy of the License at
 // http://solderpad.org/licenses/SHL-0.51. Unless required by applicable law
 // or agreed to in writing, software, hardware and materials distributed under
 // this License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
+//
+// Authors: Maicol Ciani, University of Bologna
+//
+/////////////////////////////////////////////////////////////////
+//  ______                                    _   _            //
+// | ___ \                                  | | | |            //
+// | |_/ /___ __      __ ___  _ __  ___   __| | | |            //
+// |  __// _ \\ \ /\ / // _ \| '__|/ _ \ / _` | | '_ \ | | | | //
+// | |  | (_) |\ V  V /|  __/| |  |  __/| (_| | | |_) || |_| | //
+// \_|   \___/  \_/\_/  \___||_|   \___| \__,_| |_.__/  \__, | //
+//  _____  _             _    _____ ______  _____        __/ | //
+// /  __ \| |           | |  |  __ \| ___ \|_   _|      |___/  //
+// | /  \/| |__    __ _ | |_ | |  \/| |_/ /  | |               //
+// | |    | '_ \  / _` || __|| | __ |  __/   | |               //
+// | \__/\| | | || (_| || |_ | |_\ \| |      | |               //
+//  \____/|_| |_| \__,_| \__| \____/\_|      \_/               //
+//                                                             //
+/////////////////////////////////////////////////////////////////
 
 module fifo_dp_v3 #(
     parameter bit          FALL_THROUGH = 1'b1, // fifo is in fall-through mode
