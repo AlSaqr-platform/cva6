@@ -1333,7 +1333,7 @@ module decoder
                   else if (priv_lvl_i == riscv::PRIV_LVL_U && !senv_sse_i) illegal_instr = 1'b1;
                   else if (priv_lvl_i == riscv::PRIV_LVL_S && CVA6Cfg.RVH && !henv_sse_i) virtual_illegal_instr = 1'b1;
                   else if (priv_lvl_i == riscv::PRIV_LVL_U && CVA6Cfg.RVH && !senv_sse_i) virtual_illegal_instr = 1'b1;
-                  else instruction_o.op = ariane_pkg::AMO_SWAPW;
+                  else instruction_o.op = ariane_pkg::SSAMO_SWAPW;
                 end
               end
               5'hC: instruction_o.op = ariane_pkg::AMO_ANDW;
@@ -1361,7 +1361,7 @@ module decoder
                   else if (priv_lvl_i == riscv::PRIV_LVL_U && !senv_sse_i) illegal_instr = 1'b1;
                   else if (priv_lvl_i == riscv::PRIV_LVL_S && CVA6Cfg.RVH && !henv_sse_i) virtual_illegal_instr = 1'b1;
                   else if (priv_lvl_i == riscv::PRIV_LVL_U && CVA6Cfg.RVH && !senv_sse_i) virtual_illegal_instr = 1'b1;
-                  else instruction_o.op = ariane_pkg::AMO_SWAPD;
+                  else instruction_o.op = ariane_pkg::SSAMO_SWAPD;
                 end
               end
               5'hC: instruction_o.op = ariane_pkg::AMO_ANDD;

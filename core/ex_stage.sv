@@ -178,9 +178,13 @@ module ex_stage
     // TO_BE_COMPLETED - CSR_REGFILE
     input  logic                   [  riscv::PPNW-1:0]                  satp_ppn_i,
     // TO_BE_COMPLETED - CSR_REGFILE
+    input  logic                   [  riscv::ModeW-1:0]                 satp_mode_i,
+    // TO_BE_COMPLETED - CSR_REGFILE
     input  logic                   [   ASID_WIDTH-1:0]                  asid_i,
     // TO_BE_COMPLETED - CSR_REGFILE
     input  logic                   [  riscv::PPNW-1:0]                  vsatp_ppn_i,
+    // TO_BE_COMPLETED - CSR_REGFILE
+    input  logic                   [  riscv::ModeW-1:0]                 vsatp_mode_i,
     // TO_BE_COMPLETED - CSR_REGFILE
     input  logic                   [   ASID_WIDTH-1:0]                  vs_asid_i,
     // TO_BE_COMPLETED - CSR_REGFILE
@@ -244,11 +248,15 @@ module ex_stage
   logic current_instruction_is_hfence_vvma;
   logic current_instruction_is_hfence_gvma;
   logic current_instruction_is_sspopchk;
+  logic current_instruction_is_ssamo;
+  logic current_instruction_is_ss;
   logic ssv_loaded;
   logic [TRANS_ID_BITS-1:0] sspopchk_trans_id;
   logic [riscv::XLEN-1:0] link_reg;
   exception_t sspopchk_ex;
+  exception_t ss_st_ex;
   exception_t ld_ex;  
+  exception_t st_ex;
   // These two register store the rs1 and rs2 parameters in case of `SFENCE_VMA`
   // instruction to be used for TLB flush in the next clock cycle.
   logic [VMID_WIDTH-1:0] vmid_to_be_flushed;
@@ -423,7 +431,7 @@ module ex_stage
       .store_trans_id_o,
       .store_result_o,
       .store_valid_o,
-      .store_exception_o,
+      .store_exception_o     (st_ex),
       .commit_i              (lsu_commit_i),
       .commit_ready_o        (lsu_commit_ready_o),
       .commit_tran_id_i,
@@ -588,7 +596,7 @@ module ex_stage
         current_instruction_is_sspopchk <= 1'b0;
         sspopchk_trans_id <= '0;
         link_reg <= '0;
-      end else if (fu_data_i.operation == ariane_pkg::SSPOPCHK && lsu_valid_i) begin
+      end else if (fu_data_i.operation == SSPOPCHK && lsu_valid_i) begin
         current_instruction_is_sspopchk <= 1'b1;
         sspopchk_trans_id <= fu_data_i.trans_id;
         link_reg <= fu_data_i.operand_b;
@@ -624,6 +632,21 @@ module ex_stage
         sspopchk_ex.valid = 1'b1;
         sspopchk_ex.cause = riscv::SOFTWARE_CHECK;
         sspopchk_ex.tval = 3; // Lift it to riscv.pkg?
+      end
+  end
+
+  assign current_instruction_is_ssamo = (fu_data_i.operation == SSAMO_SWAPD || fu_data_i.operation == SSAMO_SWAPW) && lsu_valid_i;
+  assign current_instruction_is_ss = (fu_data_i.operation == SSPOPCHK || fu_data_i.operation == SSPUSH) && lsu_valid_i;
+  
+  assign store_exception_o = (current_instruction_is_sspopchk || current_instruction_is_ss) ? ss_st_ex : st_ex;
+
+  always_comb begin : ss_access_check
+    ss_st_ex = '0;
+    if (CVA6Cfg.ZiCfiSSEn)
+      // If SSAMO access and M MODE or SS access and addr translation disabled early cut and raise store/AMO access fault
+      if ((current_instruction_is_ssamo && priv_lvl_i == riscv::PRIV_LVL_M) || (current_instruction_is_ss && (satp_mode_i == '0 || vsatp_mode_i == '0 & v_i))) begin
+        ss_st_ex.valid = 1'b1;
+        ss_st_ex.cause = riscv::ST_ACCESS_FAULT;
       end
   end
 

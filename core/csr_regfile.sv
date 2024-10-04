@@ -113,9 +113,13 @@ module csr_regfile
     // TO_BE_COMPLETED - EX_STAGE
     output logic [riscv::PPNW-1:0] satp_ppn_o,
     // TO_BE_COMPLETED - EX_STAGE
+    output logic [riscv::ModeW-1:0] satp_mode_o,
+    // TO_BE_COMPLETED - EX_STAGE
     output logic [AsidWidth-1:0] asid_o,
     // TO_BE_COMPLETED - EX_STAGE
     output logic [riscv::PPNW-1:0] vsatp_ppn_o,
+    // TO_BE_COMPLETED - EX_STAGE
+    output logic [riscv::ModeW-1:0] vsatp_mode_o,
     // TO_BE_COMPLETED - EX_STAGE
     output logic [AsidWidth-1:0] vs_asid_o,
     // TO_BE_COMPLETED - EX_STAGE
