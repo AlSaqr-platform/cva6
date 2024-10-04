@@ -418,8 +418,10 @@ module cva6
   logic mxr_csr_ex;
   logic vmxr_csr_ex;
   logic [riscv::PPNW-1:0] satp_ppn_csr_ex;
+  logic [riscv::ModeW-1:0] satp_mode_csr_ex;
   logic [ASID_WIDTH-1:0] asid_csr_ex;
   logic [riscv::PPNW-1:0] vsatp_ppn_csr_ex;
+  logic [riscv::ModeW-1:0] vsatp_mode_csr_ex;
   logic [ASID_WIDTH-1:0] vs_asid_csr_ex;
   logic [riscv::PPNW-1:0] hgatp_ppn_csr_ex;
   logic [VMID_WIDTH-1:0] vmid_csr_ex;
@@ -861,8 +863,10 @@ module cva6
       .mxr_i                   (mxr_csr_ex),                     // from CSR
       .vmxr_i                  (vmxr_csr_ex),                    // from CSR
       .satp_ppn_i              (satp_ppn_csr_ex),                // from CSR
+      .satp_mode_i             (satp_mode_csr_ex),               // from CSR
       .asid_i                  (asid_csr_ex),                    // from CSR
       .vsatp_ppn_i             (vsatp_ppn_csr_ex),               // from CSR
+      .vsatp_mode_i            (vsatp_mode_csr_ex),              // from CSR
       .vs_asid_i               (vs_asid_csr_ex),                 // from CSR
       .hgatp_ppn_i             (hgatp_ppn_csr_ex),               // from CSR
       .vmid_i                  (vmid_csr_ex),                    // from CSR
@@ -988,8 +992,10 @@ module cva6
       .mxr_o                   (mxr_csr_ex),
       .vmxr_o                  (vmxr_csr_ex),
       .satp_ppn_o              (satp_ppn_csr_ex),
+      .satp_mode_o             (satp_mode_csr_ex),
       .asid_o                  (asid_csr_ex),
       .vsatp_ppn_o             (vsatp_ppn_csr_ex),
+      .vsatp_mode_o            (vsatp_mode_csr_ex),
       .vs_asid_o               (vs_asid_csr_ex),
       .hgatp_ppn_o             (hgatp_ppn_csr_ex),
       .vmid_o                  (vmid_csr_ex),
