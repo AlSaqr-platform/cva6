@@ -46,6 +46,7 @@ module cva6_mmu_sv39x4
     input logic [riscv::VLEN-1:0] lsu_vaddr_i,  // virtual address in
     input riscv::xlen_t lsu_tinst_i,  // transformed instruction in
     input logic lsu_is_store_i,  // the translation is requested by a store
+    input logic instr_is_ss_i, // the translation is requested by a shadow stack writeinstr
     output logic csr_hs_ld_st_inst_o,  // hyp load store instruction
     // if we need to walk the page table we can't grant in the same cycle
     // Cycle 0

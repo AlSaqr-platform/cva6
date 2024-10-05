@@ -79,10 +79,11 @@ module cva6_ptw_sv39x4
     output logic                   itlb_miss_o,
     output logic                   dtlb_miss_o,
     // PMP
-
     input riscv::pmpcfg_t [15:0] pmpcfg_i,
     input logic [15:0][riscv::PLEN-3:0] pmpaddr_i,
-    output logic [riscv::GPLEN-1:0] bad_gpaddr_o
+    output logic [riscv::GPLEN-1:0] bad_gpaddr_o,
+    // Zicfiss
+    input logic instr_is_ss_i
 
 );
 
@@ -378,8 +379,10 @@ module cva6_ptw_sv39x4
           // -------------
           // Invalid PTE
           // -------------
-          // If pte.v = 0, or if pte.r = 0 and pte.w = 1, stop and raise a page-fault exception.
-          if (!pte.v || (!pte.r && pte.w) || (|pte.reserved)) state_d = PROPAGATE_ERROR;
+          // If pte.v = 0, or if pte.r = 0 and pte.w = 1, stop and raise a page-fault exception. if the instr is not ss
+          if (!pte.v || (!pte.r && pte.w && !instr_is_ss_i) || (|pte.reserved)) state_d = PROPAGATE_ERROR;
+          // if shadow stack access and the accessed page is not r = 0, w = 1 and x = 1, raise access-fault exception
+          else if (instr_is_ss_i && !(!pte.r && pte.w && !pte.x)) state_d = PROPAGATE_ACCESS_ERROR;
           // -----------
           // Valid PTE
           // -----------

@@ -175,6 +175,7 @@ module load_store_unit
   logic [riscv::XLEN-1:0] st_tinst;
   logic                   st_hs_ld_st_inst;
   logic                   st_hlvx_inst;
+  logic                   instr_is_ss;
   logic                   translation_req;
   logic                   translation_valid;
   logic [riscv::VLEN-1:0] mmu_vaddr;
@@ -239,6 +240,8 @@ module load_store_unit
         // Hypervisor load/store signals
         .hlvx_inst_i    (mmu_hlvx_inst),
         .hs_ld_st_inst_i(mmu_hs_ld_st_inst),
+        // ZiCfiss ext.
+        .instr_is_ss_i    (instr_is_ss),
         .*
     );
   end else if (MMU_PRESENT && (riscv::XLEN == 64)) begin : gen_mmu_sv39
@@ -369,6 +372,7 @@ module load_store_unit
       .ex_o                 (st_ex),
       // MMU port
       .translation_req_o    (st_translation_req),
+      .instr_is_ss_o        (instr_is_ss),
       .vaddr_o              (st_vaddr),
       .rvfi_mem_paddr_o     (rvfi_mem_paddr_o),
       .tinst_o              (st_tinst),
@@ -555,7 +559,7 @@ module load_store_unit
                 AMO_LRD, AMO_SCD,
                 AMO_SWAPD, AMO_ADDD, AMO_ANDD, AMO_ORD,
                 AMO_XORD, AMO_MAXD, AMO_MAXDU, AMO_MIND,
-                AMO_MINDU, HLV_D, HSV_D: begin
+                AMO_MINDU, HLV_D, HSV_D, SSAMO_SWAPD: begin
           if (riscv::IS_XLEN64 && lsu_ctrl.vaddr[2:0] != 3'b000) begin
             data_misaligned = 1'b1;
           end
@@ -565,7 +569,7 @@ module load_store_unit
                 AMO_LRW, AMO_SCW,
                 AMO_SWAPW, AMO_ADDW, AMO_ANDW, AMO_ORW,
                 AMO_XORW, AMO_MAXW, AMO_MAXWU, AMO_MINW,
-                AMO_MINWU, HLV_W, HLV_WU, HLVX_WU, HSV_W: begin
+                AMO_MINWU, HLV_W, HLV_WU, HLVX_WU, HSV_W, SSAMO_SWAPW: begin
           if (lsu_ctrl.vaddr[1:0] != 2'b00) begin
             data_misaligned = 1'b1;
           end
