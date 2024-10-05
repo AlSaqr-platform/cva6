@@ -52,6 +52,8 @@ module store_unit
     output exception_t ex_o,
     // Address translation request - TO_BE_COMPLETED
     output logic translation_req_o,
+    // Instruction is SS push or SSAMOSWAP - TO BE COMPLETED
+    output logic instr_is_ss_o,
     // Virtual address - TO_BE_COMPLETED
     output logic [riscv::VLEN-1:0] vaddr_o,
     // RVFI information - RVFI
@@ -116,6 +118,7 @@ module store_unit
     st_valid               = 1'b0;
     st_valid_without_flush = 1'b0;
     pop_st_o               = 1'b0;
+    instr_is_ss_o          = '0;
     ex_o                   = ex_i;
     trans_id_n             = lsu_ctrl_i.trans_id;
     state_d                = state_q;
@@ -186,6 +189,7 @@ module store_unit
         // it wasn't full
         if (state_q == WAIT_TRANSLATION && ariane_pkg::MMU_PRESENT) begin
           translation_req_o = 1'b1;
+          instr_is_ss_o = is_ss(lsu_ctrl_i.operation);
 
           if (dtlb_hit_i) begin
             state_d = IDLE;
@@ -233,6 +237,7 @@ module store_unit
         AMO_MAXWU, AMO_MAXDU: amo_op_d = AMO_MAXU;
         AMO_MINW, AMO_MIND:   amo_op_d = AMO_MIN;
         AMO_MINWU, AMO_MINDU: amo_op_d = AMO_MINU;
+        SSAMO_SWAPW, SSAMO_SWAPD: amo_op_d = AMO_SWAP;
         default:              amo_op_d = AMO_NONE;
       endcase
     end else begin
