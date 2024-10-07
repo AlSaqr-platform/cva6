@@ -380,9 +380,9 @@ module cva6_ptw_sv39x4
           // Invalid PTE
           // -------------
           // If pte.v = 0, or if pte.r = 0 and pte.w = 1, stop and raise a page-fault exception. if the instr is not ss
-          if (!pte.v || (!pte.r && pte.w && !instr_is_ss_i) || (|pte.reserved)) state_d = PROPAGATE_ERROR;
-          // if shadow stack access and the accessed page is not r = 0, w = 1 and x = 1, raise access-fault exception
-          else if (instr_is_ss_i && !(!pte.r && pte.w && !pte.x)) state_d = PROPAGATE_ACCESS_ERROR;
+          if (!pte.v || (!pte.r && pte.w && !instr_is_ss_i) || (instr_is_ss_i && pte.r && !pte.w && !pte.x) || (|pte.reserved)) state_d = PROPAGATE_ERROR;
+          // if shadow stack access and the accessed page is not SS (r = 0, w = 1, x = 1) or read-only (r = 1, w = 0, x = 0) raise access-fault exception
+          else if ((instr_is_ss_i && !(!pte.r && pte.w && !pte.x)) || (!instr_is_ss_i && !pte.r && pte.w && !pte.x) || (instr_is_ss_i && !(pte.r && !pte.w && !pte.x))) state_d = PROPAGATE_ACCESS_ERROR;
           // -----------
           // Valid PTE
           // -----------
