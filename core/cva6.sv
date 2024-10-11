@@ -472,6 +472,7 @@ module cva6
   riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_commit_ctr;
   logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_commit_ctr;
   logic menv_sse, henv_sse, senv_sse;
+  logic ss_testmode;
 
   // ----------------------------
   // Performance Counters <-> *
@@ -645,7 +646,8 @@ module cva6
       .menv_sse_i      (menv_sse),
       .henv_sse_i      (henv_sse),
       .senv_sse_i      (senv_sse),
-      .xsse_o          (xsse)
+      .xsse_o          (xsse),
+      .ss_testmode_i   (ss_testmode)
   );
 
   logic [NrWbPorts-1:0][TRANS_ID_BITS-1:0] trans_id_ex_id;
@@ -1058,6 +1060,7 @@ module cva6
       .henv_sse_o              (henv_sse),
       .senv_sse_o              (senv_sse),
       .ssp_o                   (ssp),
+      .ss_testmode_o           (ss_testmode),
       .debug_req_i,
       .ipi_i,
       .irq_i,

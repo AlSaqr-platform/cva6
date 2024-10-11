@@ -767,7 +767,9 @@ typedef struct packed {
     CSR_HPM_COUNTER_30H  = 12'hC9E,  // reserved
     CSR_HPM_COUNTER_31H  = 12'hC9F,  // reserved
     // CLIC CSRs (Supervisor Mode)
-    CSR_SINTSTATUS       = 12'hDB1
+    CSR_SINTSTATUS       = 12'hDB1,
+    // Shadow Stack test mode
+    CSR_SS_TESTMODE      = 12'hCA0
   } csr_reg_t;
 
   localparam logic [63:0] SSTATUS_UIE = 'h00000001;

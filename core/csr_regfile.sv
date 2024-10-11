@@ -201,7 +201,9 @@ module csr_regfile
     // senvcfg sse for zicfiss extension
     output logic senv_sse_o,
     // shadow stack pointer address
-    output logic [riscv::XLEN-1:0] ssp_o
+    output logic [riscv::XLEN-1:0] ssp_o,
+    // shadow stack test mode 
+    output logic ss_testmode_o
 );
 
   // AIA internal signals
@@ -270,6 +272,7 @@ module csr_regfile
   logic menv_sse_d, menv_sse_q;
   logic senv_sse_d, senv_sse_q;
   logic henv_sse_d, henv_sse_q;
+  logic ss_testmode_d, ss_testmode_q;
   logic fiom_d, fiom_q;
 
   riscv::xlen_t stvec_q, stvec_d;
@@ -342,6 +345,9 @@ module csr_regfile
   assign henv_sse_o = henv_sse_q;
   assign menv_sse_o = menv_sse_q;
   assign ssp_o      = ssp_q;
+  assign vsatp_mode_o = vsatp_q.mode;
+  assign satp_mode_o = satp_q.mode;
+  assign ss_testmode_o = ss_testmode_q; 
   // ----------------
   // CSR Read logic
   // ----------------
@@ -415,13 +421,19 @@ module csr_regfile
           if(CVA6Cfg.ZiCfiSSEn) begin
             if (priv_lvl_o != riscv::PRIV_LVL_M && menv_sse_q == 1'b0) read_access_exception = 1'b1;
             else if (priv_lvl_o != riscv::PRIV_LVL_U && senv_sse_q == 1'b0) read_access_exception = 1'b1;
-                 else if (CVA6Cfg.RVH) begin
-              if (priv_lvl_o == riscv::PRIV_LVL_S && henv_sse_q == 1'b0) // Read attempts in VS mode
-                virtual_read_access_exception = 1'b1;
-              else if (priv_lvl_o == riscv::PRIV_LVL_U && (henv_sse_q == 1'b0 || senv_sse_q == 1'b0)) // Read attempts in VU mode
-                virtual_read_access_exception = 1'b1;
-              else csr_rdata = ssp_q;
-            end else csr_rdata = ssp_q;
+              else if (CVA6Cfg.RVH) begin
+                if (priv_lvl_o == riscv::PRIV_LVL_S && henv_sse_q == 1'b0) // Read attempts in VS mode
+                  virtual_read_access_exception = 1'b1;
+                else if (priv_lvl_o == riscv::PRIV_LVL_U && (henv_sse_q == 1'b0 || senv_sse_q == 1'b0)) // Read attempts in VU mode
+                  virtual_read_access_exception = 1'b1;
+                else csr_rdata = ssp_q;
+              end else csr_rdata = ssp_q;
+          end
+        end
+        riscv::CSR_SS_TESTMODE: begin
+          if (CVA6Cfg.ZiCfiSSEn) begin
+            if (priv_lvl_o != riscv::PRIV_LVL_M) read_access_exception = 1'b1;
+            else csr_rdata = ss_testmode_q;
           end
         end
         // debug registers
@@ -1105,6 +1117,7 @@ module csr_regfile
     vstval_d = vstval_q;
     vsatp_d = vsatp_q;
     
+    ss_testmode_d = ss_testmode_q;
     ssp_d = ssp_q;
     senv_sse_d = senv_sse_q;
     henv_sse_d = henv_sse_q;
@@ -1190,6 +1203,12 @@ module csr_regfile
               else if (priv_lvl_o == riscv::PRIV_LVL_U && (henv_sse_q == 1'b0 || senv_sse_q == 1'b0)) virtual_update_access_exception = 1'b1;
                    else ssp_d = csr_wdata;
             end else ssp_d = csr_wdata;
+          end
+        end
+        riscv::CSR_SS_TESTMODE: begin 
+          if (CVA6Cfg.ZiCfiSSEn) begin
+            if (priv_lvl_o != riscv::PRIV_LVL_M) update_access_exception = 1'b1;
+            else ss_testmode_d = csr_wdata[0];
           end
         end
         riscv::CSR_FTRAN: begin
@@ -2868,6 +2887,7 @@ module csr_regfile
         senv_sse_q    <= senv_sse_d;
         menv_sse_q    <= menv_sse_d;
         henv_sse_q    <= henv_sse_d;
+        ss_testmode_q <= ss_testmode_d;
       end
       // supervisor mode registers
       if (CVA6Cfg.RVS) begin

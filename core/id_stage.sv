@@ -79,7 +79,6 @@ module id_stage #(
     output logic [riscv::XLEN-1:0] mtopi_o,
     output logic [riscv::XLEN-1:0] stopi_o,
     output logic [riscv::XLEN-1:0] vstopi_o,
-    input logic hu_i,
     // MENV Shadow Stack enable - CSR_REGFILE
     input logic menv_sse_i,
     // HENV Shadow Stack enable - CSR_REGFILE
@@ -87,7 +86,9 @@ module id_stage #(
     // SENV Shadow Stack enable - CSR_REGFILE
     input logic senv_sse_i,
     // Shadow Stack enabled state - EX_STAGE
-    output logic xsse_o
+    output logic xsse_o,
+    // Shadow stack test mode - CSR_REGFILE
+    input logic ss_testmode_i
 );
   // ID/ISSUE register stage
   typedef struct packed {
@@ -101,14 +102,14 @@ module id_stage #(
   logic                                 is_control_flow_instr;
   ariane_pkg::scoreboard_entry_t        decoded_instruction;
   logic                          [31:0] orig_instr;
-
   logic                                 is_illegal;
   logic                          [31:0] instruction;
   logic                                 is_compressed;
   
-// Compute the shadow stack enabled state
+  // Compute the shadow stack enabled state
   always_comb begin
-    if(priv_lvl_i == riscv::PRIV_LVL_M) xsse_o = 1'b0;
+    if(priv_lvl_i == riscv::PRIV_LVL_M && !ss_testmode_i) xsse_o = 1'b0;
+    else if (priv_lvl_i == riscv::PRIV_LVL_M && ss_testmode_i) xsse_o = 1'b1; 
     else begin
       if(priv_lvl_i == riscv::PRIV_LVL_S || priv_lvl_i == riscv::PRIV_LVL_HS)
         xsse_o = menv_sse_i;
