@@ -206,6 +206,14 @@ module commit_stage
         end
       end
       // ------------------
+      // SSP Logic
+      // ------------------
+      if(CVA6Cfg.ZiCfiSSEn)
+        if (commit_instr_i[0].op == ariane_pkg::SSPUSH || commit_instr_i[0].op == ariane_pkg::SSPOPCHK) begin
+          csr_op_o = commit_instr_i[0].op;
+          commit_ack_o[0] = 1'b1;
+        end
+      // ------------------
       // FENCE.T Logic
       // ------------------
       // fence.t is idempotent so we can safely re-execute it after returning

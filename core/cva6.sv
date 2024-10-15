@@ -214,6 +214,8 @@ module cva6
     CVA6Cfg.XFVec,
     CVA6Cfg.CvxifEn,
     CVA6Cfg.ZiCondExtEn,
+    CVA6Cfg.ZiCfiSSEn,
+    CVA6Cfg.ZiCfiLPEn,
     CVA6Cfg.RVSCLIC,
     // Extended
     bit'(RVF),
@@ -375,6 +377,7 @@ module cva6
   // EX <-> COMMIT
   // --------------
   // CSR Commit
+  riscv::xlen_t ssp;
   logic csr_commit_commit_ex;
   logic dirty_fp_state;
   logic dirty_v_state;
@@ -392,6 +395,10 @@ module cva6
   // ID <-> COMMIT
   // --------------
   scoreboard_entry_t [CVA6ExtendCfg.NrCommitPorts-1:0] commit_instr_id_commit;
+  // --------------
+  // ID <-> EX
+  // --------------
+  logic xsse;
   // --------------
   // RVFI
   // --------------
@@ -424,8 +431,10 @@ module cva6
   logic mxr_csr_ex;
   logic vmxr_csr_ex;
   logic [riscv::PPNW-1:0] satp_ppn_csr_ex;
+  logic [riscv::ModeW-1:0] satp_mode_csr_ex;
   logic [ASID_WIDTH-1:0] asid_csr_ex;
   logic [riscv::PPNW-1:0] vsatp_ppn_csr_ex;
+  logic [riscv::ModeW-1:0] vsatp_mode_csr_ex;
   logic [ASID_WIDTH-1:0] vs_asid_csr_ex;
   logic [riscv::PPNW-1:0] hgatp_ppn_csr_ex;
   logic [VMID_WIDTH-1:0] vmid_csr_ex;
@@ -462,6 +471,9 @@ module cva6
   riscv::xlen_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_commit_ctr;
   riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_commit_ctr;
   logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_commit_ctr;
+  logic menv_sse, henv_sse, senv_sse;
+  logic ss_testmode;
+
   // ----------------------------
   // Performance Counters <-> *
   // ----------------------------
@@ -630,7 +642,12 @@ module cva6
       .hu_i            (hu),
       .mtopi_o         (mtopi),
       .stopi_o         (stopi),
-      .vstopi_o        (vstopi)
+      .vstopi_o        (vstopi),
+      .menv_sse_i      (menv_sse),
+      .henv_sse_i      (henv_sse),
+      .senv_sse_i      (senv_sse),
+      .xsse_o          (xsse),
+      .ss_testmode_i   (ss_testmode)
   );
 
   logic [NrWbPorts-1:0][TRANS_ID_BITS-1:0] trans_id_ex_id;
@@ -743,6 +760,7 @@ module cva6
       .fpu_rm_o              (fpu_rm_id_ex),
       // CSR
       .csr_valid_o           (csr_valid_id_ex),
+      .ssp_i                 (ssp),
       // CVXIF
       .x_issue_valid_o       (x_issue_valid_id_ex),
       .x_issue_ready_i       (x_issue_ready_ex_id),
@@ -876,8 +894,10 @@ module cva6
       .mxr_i                   (mxr_csr_ex),                     // from CSR
       .vmxr_i                  (vmxr_csr_ex),                    // from CSR
       .satp_ppn_i              (satp_ppn_csr_ex),                // from CSR
+      .satp_mode_i             (satp_mode_csr_ex),               // from CSR
       .asid_i                  (asid_csr_ex),                    // from CSR
       .vsatp_ppn_i             (vsatp_ppn_csr_ex),               // from CSR
+      .vsatp_mode_i            (vsatp_mode_csr_ex),              // from CSR
       .vs_asid_i               (vs_asid_csr_ex),                 // from CSR
       .hgatp_ppn_i             (hgatp_ppn_csr_ex),               // from CSR
       .vmid_i                  (vmid_csr_ex),                    // from CSR
@@ -893,7 +913,9 @@ module cva6
       .pmpaddr_i               (pmpaddr),
       //RVFI
       .rvfi_lsu_ctrl_o         (rvfi_lsu_ctrl),
-      .rvfi_mem_paddr_o        (rvfi_mem_paddr)
+      .rvfi_mem_paddr_o        (rvfi_mem_paddr),
+      // CFI
+      .xsse_i                  (xsse)
   );
 
   // ---------
@@ -1007,8 +1029,10 @@ module cva6
       .mxr_o                   (mxr_csr_ex),
       .vmxr_o                  (vmxr_csr_ex),
       .satp_ppn_o              (satp_ppn_csr_ex),
+      .satp_mode_o             (satp_mode_csr_ex),
       .asid_o                  (asid_csr_ex),
       .vsatp_ppn_o             (vsatp_ppn_csr_ex),
+      .vsatp_mode_o            (vsatp_mode_csr_ex),
       .vs_asid_o               (vs_asid_csr_ex),
       .hgatp_ppn_o             (hgatp_ppn_csr_ex),
       .vmid_o                  (vmid_csr_ex),
@@ -1032,6 +1056,11 @@ module cva6
       .pmpcfg_o                (pmpcfg),
       .pmpaddr_o               (pmpaddr),
       .mcountinhibit_o         (mcountinhibit_csr_perf),
+      .menv_sse_o              (menv_sse),
+      .henv_sse_o              (henv_sse),
+      .senv_sse_o              (senv_sse),
+      .ssp_o                   (ssp),
+      .ss_testmode_o           (ss_testmode),
       .debug_req_i,
       .ipi_i,
       .irq_i,

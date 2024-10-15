@@ -78,7 +78,17 @@ module id_stage #(
     input  logic hu_i,
     output logic [riscv::XLEN-1:0] mtopi_o,
     output logic [riscv::XLEN-1:0] stopi_o,
-    output logic [riscv::XLEN-1:0] vstopi_o
+    output logic [riscv::XLEN-1:0] vstopi_o,
+    // MENV Shadow Stack enable - CSR_REGFILE
+    input logic menv_sse_i,
+    // HENV Shadow Stack enable - CSR_REGFILE
+    input logic henv_sse_i,
+    // SENV Shadow Stack enable - CSR_REGFILE
+    input logic senv_sse_i,
+    // Shadow Stack enabled state - EX_STAGE
+    output logic xsse_o,
+    // Shadow stack test mode - CSR_REGFILE
+    input logic ss_testmode_i
 );
   // ID/ISSUE register stage
   typedef struct packed {
@@ -92,10 +102,24 @@ module id_stage #(
   logic                                 is_control_flow_instr;
   ariane_pkg::scoreboard_entry_t        decoded_instruction;
   logic                          [31:0] orig_instr;
-
   logic                                 is_illegal;
   logic                          [31:0] instruction;
   logic                                 is_compressed;
+  
+  // Compute the shadow stack enabled state
+  always_comb begin
+    if(priv_lvl_i == riscv::PRIV_LVL_M && !ss_testmode_i) xsse_o = 1'b0;
+    else if (priv_lvl_i == riscv::PRIV_LVL_M && ss_testmode_i) xsse_o = 1'b1; 
+    else begin
+      if(priv_lvl_i == riscv::PRIV_LVL_S || priv_lvl_i == riscv::PRIV_LVL_HS)
+        xsse_o = menv_sse_i;
+      else if(CVA6Cfg.RVH && priv_lvl_i == riscv::PRIV_LVL_S && v_i)
+        xsse_o = henv_sse_i;
+      else if(CVA6Cfg.RVH && priv_lvl_i == riscv::PRIV_LVL_U && v_i)
+        xsse_o = senv_sse_i;
+      else xsse_o = 1'b0;
+    end
+  end
 
   if (CVA6Cfg.RVC) begin
     // ---------------------------------------------------------
@@ -138,6 +162,7 @@ module id_stage #(
       .priv_lvl_i             (priv_lvl_i),
       .v_i                    (v_i),
       .debug_mode_i           (debug_mode_i),
+      .xsse_i                 (xsse_o),
       .fs_i,
       .vfs_i,
       .frm_i,
@@ -147,6 +172,9 @@ module id_stage #(
       .vtw_i,
       .tsr_i,
       .hu_i,
+      .senv_sse_i,
+      .menv_sse_i,
+      .henv_sse_i,
       .instruction_o          (decoded_instruction),
       .orig_instr_o           (orig_instr),
       .is_control_flow_instr_o(is_control_flow_instr),

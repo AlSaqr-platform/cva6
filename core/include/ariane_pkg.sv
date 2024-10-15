@@ -446,6 +446,11 @@ package ariane_pkg;
     LB,
     SB,
     LBU,
+    // Zicfiss instructions
+    SSPUSH,
+    SSPOPCHK,
+    SSAMO_SWAPW,
+    SSAMO_SWAPD,
     // Hypervisor Virtual-Machine Load and Store Instructions
     HLV_B,
     HLV_BU,
@@ -699,6 +704,17 @@ package ariane_pkg;
   function automatic logic is_amo(fu_op op);
     case (op) inside
       [AMO_LRW : AMO_MINDU]: begin
+        return 1'b1;
+      end
+      default: return 1'b0;
+    endcase
+  endfunction
+
+  function automatic logic is_ss(fu_op op);
+    case (op) inside
+      SSPUSH,
+      SSAMO_SWAPD,
+      SSAMO_SWAPW: begin
         return 1'b1;
       end
       default: return 1'b0;
@@ -1100,7 +1116,7 @@ package ariane_pkg;
   function automatic logic is_trans_2M(input logic s_st_enbl, input logic g_st_enbl,
                                        input logic is_s_1G, input logic is_s_2M,
                                        input logic is_g_1G, input logic is_g_2M);
-    return  (s_st_enbl && g_st_enbl) ? 
+    return  (s_st_enbl && g_st_enbl) ?
                 ((is_s_2M && (is_g_1G || is_g_2M)) || (is_g_2M && (is_s_1G || is_s_2M))) :
                 ((is_s_2M && s_st_enbl) || (is_g_2M && g_st_enbl));
   endfunction : is_trans_2M

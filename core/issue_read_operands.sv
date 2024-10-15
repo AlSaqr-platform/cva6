@@ -95,6 +95,8 @@ module issue_read_operands
     output logic [2:0] fpu_rm_o,
     // CSR result is valid - TO_BE_COMPLETED
     output logic csr_valid_o,
+    // CSR Shadow Stack Pointer
+    input riscv::xlen_t ssp_i,
     // CVXIF result is valid - TO_BE_COMPLETED
     output logic cvxif_valid_o,
     // CVXIF is ready - TO_BE_COMPLETED
@@ -179,7 +181,7 @@ module issue_read_operands
     unique case (issue_instr_i.fu)
       NONE: fu_busy = 1'b0;
       ALU, CTRL_FLOW, CSR, MULT: fu_busy = ~flu_ready_i;
-      LOAD, STORE: fu_busy = ~lsu_ready_i;
+      LOAD, STORE, SSPUSH, SSPOPCHK: fu_busy = ~lsu_ready_i;
       CVXIF: fu_busy = ~cvxif_ready_i;
       default: begin
         if (CVA6Cfg.FpPresent && (issue_instr_i.fu == FPU || issue_instr_i.fu == FPU_VEC)) begin
@@ -306,6 +308,20 @@ module issue_read_operands
       };
     end
 
+    if (CVA6Cfg.ZiCfiSSEn) begin
+      // shadow stack push ongoing
+      if (issue_instr_i.op == ariane_pkg::SSPUSH) begin
+        operand_a_n = ssp_i - (riscv::XLEN >> 3);
+      end
+
+      // shadow stack popcheck ongoing
+      if (issue_instr_i.op == ariane_pkg::SSPOPCHK) begin
+        operand_a_n = ssp_i;
+        operand_b_n = operand_a_regfile;
+        imm_n       = '0;
+      end    
+    end
+
     // use the zimm as operand a
     if (issue_instr_i.use_zimm) begin
       // zero extend operand a
@@ -313,7 +329,7 @@ module issue_read_operands
     end
     // or is it an immediate (including PC), this is not the case for a store, control flow, and accelerator instructions
     // also make sure operand B is not already used as an FP operand
-    if (issue_instr_i.use_imm && (issue_instr_i.fu != STORE) && (issue_instr_i.fu != CTRL_FLOW) && (issue_instr_i.fu != ACCEL) && !(CVA6Cfg.FpPresent && is_rs2_fpr(
+    if (issue_instr_i.use_imm && (issue_instr_i.fu != STORE) && (issue_instr_i.op != ariane_pkg::SSPOPCHK) && (issue_instr_i.fu != CTRL_FLOW) && (issue_instr_i.fu != ACCEL) && !(CVA6Cfg.FpPresent && is_rs2_fpr(
             issue_instr_i.op
         ))) begin
       operand_b_n = issue_instr_i.result;
@@ -355,7 +371,7 @@ module issue_read_operands
           MULT: begin
             mult_valid_q <= 1'b1;
           end
-          LOAD, STORE: begin
+          LOAD, STORE, SSPUSH, SSPOPCHK: begin
             lsu_valid_q <= 1'b1;
           end
           CSR: begin
