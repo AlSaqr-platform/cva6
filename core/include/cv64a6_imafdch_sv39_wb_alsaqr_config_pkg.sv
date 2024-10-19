@@ -27,7 +27,7 @@ package cva6_config_pkg;
   localparam CVA6ConfigVExtEn = 0;
   localparam CVA6ConfigHExtEn = 1;
   localparam CVA6ConfigZiCondExtEn = 1;
-  localparam CVA6ConfigZiCfiLPEn = 1;
+  //localparam CVA6ConfigZiCfiLPEn = 1;
   localparam CVA6ConfigSclicExtEn = 0;
 
   localparam CVA6ConfigAxiIdWidth = 4;
@@ -103,7 +103,7 @@ package cva6_config_pkg;
       XFVec: bit'(CVA6ConfigFVecEn),
       CvxifEn: bit'(CVA6ConfigCvxifEn),
       ZiCondExtEn: bit'(CVA6ConfigZiCondExtEn),
-      ZiCfiLPEn: bit'(CVA6ConfigZiCfiLPEn),
+      //ZiCfiLPEn: bit'(CVA6ConfigZiCfiLPEn),
       RVSCLIC: bit'(CVA6ConfigSclicExtEn),
       // Extended
       RVF:
