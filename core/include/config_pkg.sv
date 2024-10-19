@@ -77,7 +77,7 @@ package config_pkg;
     // Zicond RISC-V extension
     bit                          ZiCondExtEn;
     // Control-Flow Integrity - Zicfilp extension
-    //bit                          ZiCfiLPEn;
+    bit                          ZiCfiLPEn;
     // CLIC extension
     bit                          RVSCLIC;
     // Single precision FP RISC-V extension

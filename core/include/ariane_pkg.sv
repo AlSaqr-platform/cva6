@@ -598,7 +598,9 @@ package ariane_pkg;
     ACCEL_OP_STORE,
     // Zicond instruction
     CZERO_EQZ,
-    CZERO_NEZ
+    CZERO_NEZ,
+    // Zicfi instruction
+    ZICFI_LPAD
   } fu_op;
 
   typedef struct packed {
@@ -749,6 +751,21 @@ package ariane_pkg;
                                              // we want jump accordingly e.g.: +4, +2
     logic vfp;  // is this a vector floating-point instruction?
   } scoreboard_entry_t;
+
+  // ---------------
+  // Landing Pad Unit
+  // ---------------
+
+  typedef enum logic {
+    NO_LPAD_EXPECTED = 1'b0,
+    LPAD_EXPECTED = 1'b1
+  } elp_t;
+
+  localparam LPAD_LABEL_BITS = 20;
+  typedef logic [LPAD_LABEL_BITS-1:0] lpl_t;
+
+  localparam logic [riscv::XLEN-1:0] LPAD_EXCEPTION_CAUSE = 18;
+  localparam logic [riscv::XLEN-1:0] LPAD_EXCEPTION_TVAL = 2;
 
   // ---------------
   // MMU instanciation
