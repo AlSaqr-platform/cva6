@@ -1476,13 +1476,23 @@ module csr_regfile
           end
         end
         riscv::CSR_SENVCFG:
-        if (CVA6Cfg.RVU)
+        if (CVA6Cfg.RVU) begin
           if (CVA6Cfg.ZiCfiSSEn) begin
-            fiom_d = csr_wdata[0];
-            senv_lpe_d = csr_wdata[2];
-            senv_sse_d = csr_wdata[3];
-          end else fiom_d = csr_wdata[0];
-        else update_access_exception = 1'b1;
+             if (CVA6Cfg.ZiCfiLPEn) begin
+                fiom_d = csr_wdata[0];
+                senv_lpe_d = csr_wdata[2];
+                senv_sse_d = csr_wdata[3];
+             end else begin
+                fiom_d = csr_wdata[0];
+                senv_sse_d = csr_wdata[3];
+             end
+          end else if (CVA6Cfg.ZiCfiLPEn) begin
+             fiom_d = csr_wdata[0];
+             senv_lpe_d = csr_wdata[2];
+          end else begin
+             fiom_d = csr_wdata[0];
+          end
+        end else update_access_exception = 1'b1;
         //hypervisor mode registers
         riscv::CSR_HSTATUS: begin
           if (CVA6Cfg.RVH) begin
@@ -1595,13 +1605,23 @@ module csr_regfile
           end
         end
         riscv::CSR_HENVCFG:
-        if (CVA6Cfg.RVH)
+        if (CVA6Cfg.RVH) begin
           if (CVA6Cfg.ZiCfiSSEn) begin
-            fiom_d = csr_wdata[0];
-            henv_lpe_d = csr_wdata[2];
-            henv_sse_d = csr_wdata[3];
-          end else fiom_d = csr_wdata[0];
-        else update_access_exception = 1'b1;
+             if (CVA6Cfg.ZiCfiLPEn) begin
+                fiom_d = csr_wdata[0];
+                henv_lpe_d = csr_wdata[2];
+                henv_sse_d = csr_wdata[3];
+             end else begin
+                fiom_d = csr_wdata[0];
+                henv_sse_d = csr_wdata[3];
+             end
+          end else if (CVA6Cfg.ZiCfiLPEn) begin
+             fiom_d = csr_wdata[0];
+             henv_lpe_d = csr_wdata[2];
+          end else begin
+             fiom_d = csr_wdata[0];
+          end
+        end else update_access_exception = 1'b1;
         riscv::CSR_MSTATUS: begin
           mstatus_d    = {{64 - riscv::XLEN{1'b0}}, csr_wdata};
           mstatus_d.xs = riscv::Off;
@@ -1724,13 +1744,23 @@ module csr_regfile
           end
         end
         riscv::CSR_MENVCFG:
-        if (CVA6Cfg.RVU)
+        if (CVA6Cfg.RVU) begin
           if (CVA6Cfg.ZiCfiSSEn) begin
-            fiom_d = csr_wdata[0];
-            menv_lpe_d = csr_wdata[2];
-            menv_sse_d = csr_wdata[3];
+             if (CVA6Cfg.ZiCfiLPEn) begin
+                fiom_d = csr_wdata[0];
+                menv_lpe_d = csr_wdata[2];
+                menv_sse_d = csr_wdata[3];
+             end else begin
+                fiom_d = csr_wdata[0];
+                menv_sse_d = csr_wdata[3];
+             end
+          end else if (CVA6Cfg.ZiCfiLPEn) begin
+             fiom_d = csr_wdata[0];
+             menv_lpe_d = csr_wdata[2];
+          end else begin
+             fiom_d = csr_wdata[0];
           end
-        else fiom_d = csr_wdata[0];
+        end else update_access_exception = 1'b1;
         riscv::CSR_MENVCFGH: begin
           if (!CVA6Cfg.RVU || riscv::XLEN != 32) update_access_exception = 1'b1;
         end
