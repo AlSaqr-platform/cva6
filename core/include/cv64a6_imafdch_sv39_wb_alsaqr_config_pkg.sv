@@ -29,6 +29,7 @@ package cva6_config_pkg;
   localparam CVA6ConfigZiCfiSSEn = 1;
   localparam CVA6ConfigZiCfiLPEn = 0;
   localparam CVA6ConfigZiCondExtEn = 1;
+  localparam CVA6ConfigZiCfiLPEn = 1;
   localparam CVA6ConfigSclicExtEn = 0;
 
   localparam CVA6ConfigAxiIdWidth = 4;

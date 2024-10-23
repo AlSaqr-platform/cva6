@@ -192,6 +192,12 @@ module csr_regfile
     output riscv::pmpcfg_t [15:0] pmpcfg_o,
     // PMP addresses - ACC_DISPATCHER
     output logic [15:0][riscv::PLEN-3:0] pmpaddr_o,
+    // Zicfilp Landing Pad Enable
+    output logic lpe_o,
+    // Zicfilp Expected Landing Pad (D)
+    input elp_t elp_i,
+    // Zicfilp Expected Landing Pad (Q)
+    output elp_t elp_o,
     // TO_BE_COMPLETED - PERF_COUNTERS
     output logic [31:0] mcountinhibit_o,
     // menvcfg sse for zicfiss extension
@@ -269,11 +275,19 @@ module csr_regfile
   riscv::xlen_t mtval_q, mtval_d;
   riscv::xlen_t mtinst_q, mtinst_d;
   riscv::xlen_t mtval2_q, mtval2_d;
+
   logic menv_sse_d, menv_sse_q;
   logic senv_sse_d, senv_sse_q;
   logic henv_sse_d, henv_sse_q;
+
+  logic menv_lpe_d, menv_lpe_q;
+  logic senv_lpe_d, senv_lpe_q;
+  logic henv_lpe_d, henv_lpe_q;
+
   logic ss_testmode_d, ss_testmode_q;
   logic fiom_d, fiom_q;
+
+  riscv::seccfg_rv_t mseccfg_d, mseccfg_q;
 
   riscv::xlen_t stvec_q, stvec_d;
   riscv::intthresh_rv_t sintthresh_q, sintthresh_d;
@@ -311,6 +325,8 @@ module csr_regfile
   logic [15:0][riscv::PLEN-3:0] pmpaddr_q, pmpaddr_d;
   logic [MHPMCounterNum+3-1:0] mcountinhibit_d, mcountinhibit_q;
   logic [3:0] index;
+
+  elp_t elp_d, elp_q;
 
   localparam riscv::xlen_t IsaCode = (riscv::XLEN'(CVA6Cfg.RVA) <<  0)                // A - Atomic Instructions extension
   | (riscv::XLEN'(CVA6Cfg.RVB) << 1)  // C - Bitmanip extension
@@ -566,10 +582,19 @@ module csr_regfile
             read_access_exception = 1'b1;
           end
         end
-        riscv::CSR_SENVCFG: 
+        riscv::CSR_SENVCFG:
         if (CVA6Cfg.RVS) begin
-          if (CVA6Cfg.ZiCfiSSEn) csr_rdata = '0 | {senv_sse_q, {2'b0}, fiom_q};
-          else csr_rdata = '0 | fiom_q;
+          if(CVA6Cfg.ZiCfiSSEn) begin
+            if(CVA6Cfg.ZiCfiLPEn) begin
+               csr_rdata = '0 | {senv_sse_q, senv_lpe_q, {1'b0}, fiom_q};
+            end else
+               csr_rdata = '0 | {senv_sse_q, {2'b00}, fiom_q};
+          end else if(CVA6Cfg.ZiCfiLPEn) begin
+            csr_rdata = '0 | {senv_lpe_q, {1'b0}, fiom_q};
+          end else begin
+             csr_rdata = '0 | fiom_q;
+          end
+
         end else read_access_exception = 1'b1;
         // hypervisor mode registers
         riscv::CSR_HSTATUS:
@@ -607,9 +632,17 @@ module csr_regfile
         else read_access_exception = 1'b1;
         riscv::CSR_HENVCFG: 
         if (CVA6Cfg.RVH) begin
-          if (CVA6Cfg.ZiCfiSSEn) csr_rdata = '0 | {henv_sse_q, {2'b0}, fiom_q};
-          else csr_rdata = '0 | fiom_q;
-        end else read_access_exception = 1'b1;       
+          if(CVA6Cfg.ZiCfiSSEn) begin
+            if(CVA6Cfg.ZiCfiLPEn) begin
+               csr_rdata = '0 | {henv_sse_q, henv_lpe_q, {1'b0}, fiom_q};
+            end else
+               csr_rdata = '0 | {henv_sse_q, {2'b00}, fiom_q};
+          end else if(CVA6Cfg.ZiCfiLPEn) begin
+            csr_rdata = '0 | {henv_lpe_q, {1'b0}, fiom_q};
+          end else begin
+             csr_rdata = '0 | fiom_q;
+          end
+        end else read_access_exception = 1'b1;
         riscv::CSR_HGATP: begin
           if (CVA6Cfg.RVH) begin
             // intercept reads to HGATP if in HS-Mode and TVM is enabled
@@ -675,8 +708,16 @@ module csr_regfile
         end
         riscv::CSR_MENVCFG:
         if (CVA6Cfg.RVU) begin
-          if (CVA6Cfg.ZiCfiSSEn) csr_rdata = '0 | {menv_sse_q, {2'b0}, fiom_q};
-          else csr_rdata = '0 | fiom_q;
+          if(CVA6Cfg.ZiCfiSSEn) begin
+            if(CVA6Cfg.ZiCfiLPEn) begin
+               csr_rdata = '0 | {menv_sse_q, menv_lpe_q, {1'b0}, fiom_q};
+            end else
+               csr_rdata = '0 | {menv_sse_q, {2'b00}, fiom_q};
+          end else if(CVA6Cfg.ZiCfiLPEn) begin
+            csr_rdata = '0 | {menv_lpe_q, {1'b0}, fiom_q};
+          end else begin
+             csr_rdata = '0 | fiom_q;
+          end
         end else read_access_exception = 1'b1;
         riscv::CSR_MENVCFGH: begin
           if (CVA6Cfg.RVU && riscv::XLEN == 32) csr_rdata = '0;
@@ -777,6 +818,10 @@ module csr_regfile
                 csr_rdata = (vstopi_i == 0) ? '0 : 
                             (((vstopi_i-1) << 16) | AIA_CSR_DEF_PRIO);
             end
+        riscv::CSR_MSECCFG: csr_rdata = mseccfg_q[riscv::XLEN-1:0];
+        riscv::CSR_MSECCFGH: begin
+          if (riscv::XLEN == 32) csr_rdata = '0;
+          else read_access_exception = 1'b1;
         end
         riscv::CSR_MVENDORID: csr_rdata = OPENHWGROUP_MVENDORID;
         riscv::CSR_MARCHID: csr_rdata = ARIANE_MARCHID;
@@ -1099,7 +1144,10 @@ module csr_regfile
     mtval_d = mtval_q;
     mtinst_d = mtinst_q;
     mtval2_d = mtval2_q;
-    fiom_d = fiom_q;
+    menvcfg_d = menvcfg_q;
+    henvcfg_d = henvcfg_q;
+    senvcfg_d = senvcfg_q;
+    mseccfg_d = mseccfg_q;
     dcache_d = dcache_q;
     icache_d = icache_q;
     acc_cons_d = acc_cons_q;
@@ -1116,12 +1164,16 @@ module csr_regfile
     vscause_d = vscause_q;
     vstval_d = vstval_q;
     vsatp_d = vsatp_q;
-    
+
     ss_testmode_d = ss_testmode_q;
     ssp_d = ssp_q;
     senv_sse_d = senv_sse_q;
     henv_sse_d = henv_sse_q;
     menv_sse_d = menv_sse_q;
+
+    henv_lpe_d = henv_lpe_q;
+    senv_lpe_d = senv_lpe_q;
+    menv_lpe_d = menv_lpe_q;
 
     sepc_d = sepc_q;
     scause_d = scause_q;
@@ -1423,9 +1475,10 @@ module csr_regfile
           end
         end
         riscv::CSR_SENVCFG:
-        if (CVA6Cfg.RVU) 
+        if (CVA6Cfg.RVU)
           if (CVA6Cfg.ZiCfiSSEn) begin
             fiom_d = csr_wdata[0];
+            senv_lpe_d = csr_wdata[2];
             senv_sse_d = csr_wdata[3];
           end else fiom_d = csr_wdata[0];
         else update_access_exception = 1'b1;
@@ -1541,9 +1594,10 @@ module csr_regfile
           end
         end
         riscv::CSR_HENVCFG:
-        if (CVA6Cfg.RVH) 
+        if (CVA6Cfg.RVH)
           if (CVA6Cfg.ZiCfiSSEn) begin
             fiom_d = csr_wdata[0];
+            henv_lpe_d = csr_wdata[2];
             henv_sse_d = csr_wdata[3];
           end else fiom_d = csr_wdata[0];
         else update_access_exception = 1'b1;
@@ -1556,7 +1610,7 @@ module csr_regfile
           if (!CVA6Cfg.RVV) begin
             mstatus_d.vs = riscv::Off;
           end
-          mstatus_d.wpri3 = 9'b0;
+          mstatus_d.wpri3 = 8'b0;
           mstatus_d.wpri1 = 1'b0;
           mstatus_d.wpri2 = 1'b0;
           mstatus_d.wpri0 = 1'b0;
@@ -1669,14 +1723,24 @@ module csr_regfile
           end
         end
         riscv::CSR_MENVCFG:
-        if (CVA6Cfg.RVU)  
+        if (CVA6Cfg.RVU)
           if (CVA6Cfg.ZiCfiSSEn) begin
             fiom_d = csr_wdata[0];
+            menv_lpe_d = csr_wdata[2];
             menv_sse_d = csr_wdata[3];
           end
         else fiom_d = csr_wdata[0];
         riscv::CSR_MENVCFGH: begin
           if (!CVA6Cfg.RVU || riscv::XLEN != 32) update_access_exception = 1'b1;
+        end
+        riscv::CSR_MSECCFG: begin
+          mask = riscv::SECCFG_MLPE;
+          mseccfg_d = csr_wdata & mask;
+        end
+        riscv::CSR_MSECCFGH: begin
+          if (riscv::XLEN != 32) begin
+            update_access_exception = 1'b1;
+          end
         end
         riscv::CSR_MCOUNTINHIBIT:
         if (PERF_COUNTER_EN) mcountinhibit_d = {csr_wdata[MHPMCounterNum+2:2], 1'b0, csr_wdata[0]};
@@ -2422,6 +2486,69 @@ module csr_regfile
       // actually return from debug mode
       debug_mode_d = 1'b0;
     end
+
+    // ----------------
+    // Landing Pad
+    // ----------------
+    if (CVA6Cfg.ZiCfiLPEn) begin
+      // Enable landing pad.
+      // TODO(emanueleparisi) Do not consider H-mode for now.
+      if (CVA6Cfg.RVS) begin
+        unique case (priv_lvl_q)
+          riscv::PRIV_LVL_M: lpe_o = mseccfg_q.mlpe;
+          riscv::PRIV_LVL_S: lpe_o = menvcfg_q.lpe;
+          riscv::PRIV_LVL_U: lpe_o = senvcfg_q.lpe;
+          default: lpe_o = 'b0;
+        endcase
+      end else begin
+        unique case (priv_lvl_q)
+          riscv::PRIV_LVL_M: lpe_o = mseccfg_q.mlpe;
+          riscv::PRIV_LVL_U: lpe_o = menvcfg_q.lpe;
+          default: lpe_o = 'b0;
+        endcase
+      end
+
+      // Assign ELP flag.
+      // TODO(emanueleparisi) Do not consider H-mode for now.
+      elp_d = elp_i;
+      if (ex_i.valid) begin
+        elp_d = NO_LPAD_EXPECTED;
+      end
+      if (mret) begin
+        elp_d = elp_t'(mstatus_q.mpelp);
+      end
+      if (CVA6Cfg.RVS && sret) begin
+        elp_d = elp_t'(mstatus_d.spelp);
+      end
+
+      // Assign xPELP flags.
+      // TODO(emanueleparisi) Do not consider H-mode for now.
+      //mstatus_d.mpelp = elp_t'(mstatus_q.mpelp);
+      //mstatus_d.spelp = elp_t'(mstatus_q.spelp);
+      if (ex_i.valid) begin
+        if (priv_lvl_d == riscv::PRIV_LVL_M) begin
+          mstatus_d.mpelp = elp_i;
+        end else if (CVA6Cfg.RVS && priv_lvl_d == riscv::PRIV_LVL_S) begin
+          mstatus_d.spelp = elp_i;
+        end
+      end
+      if (mret) begin
+        if (priv_lvl_d == riscv::PRIV_LVL_M) begin
+          mstatus_d.mpelp = NO_LPAD_EXPECTED;
+        end else if (CVA6Cfg.RVS && priv_lvl_d == riscv::PRIV_LVL_S) begin
+          mstatus_d.spelp = NO_LPAD_EXPECTED;
+        end
+      end
+      if (CVA6Cfg.RVS && sret) begin
+        if (priv_lvl_d == riscv::PRIV_LVL_S) begin
+          mstatus_d.spelp = NO_LPAD_EXPECTED;
+        end
+      end
+    end else begin
+      lpe_o = 'b0;
+      elp_d = NO_LPAD_EXPECTED;
+    end
+
   end
 
   // ---------------------------
@@ -2685,6 +2812,9 @@ module csr_regfile
       end
       default: ;
     endcase
+
+    // Zicfilp
+    elp_o = elp_q;
   end
 
   // in debug mode we execute with privilege level M
@@ -2775,7 +2905,10 @@ module csr_regfile
       mtvt_q           <= {riscv::XLEN{1'b0}};
       mscratch_q       <= {riscv::XLEN{1'b0}};
       mtval_q          <= {riscv::XLEN{1'b0}};
-      fiom_q           <= '0;
+      menvcfg_q        <= 'b0;
+      henvcfg_q        <= 'b0;
+      senvcfg_q        <= 'b0;
+      mseccfg_q        <= 'b0;
       dcache_q         <= {{riscv::XLEN - 1{1'b0}}, 1'b1};
       icache_q         <= {{riscv::XLEN - 1{1'b0}}, 1'b1};
       // AIA
@@ -2845,6 +2978,11 @@ module csr_regfile
           pmpaddr_q[i] <= '0;
         end
       end
+
+      // Zicfilp
+      if (CVA6Cfg.ZiCfiLPEn) begin
+        elp_q <= NO_LPAD_EXPECTED;
+      end
     end else begin
       priv_lvl_q <= priv_lvl_d;
       // floating-point registers
@@ -2871,7 +3009,10 @@ module csr_regfile
       mtvt_q           <= mtvt_d;
       mscratch_q       <= mscratch_d;
       if (CVA6Cfg.TvalEn) mtval_q <= mtval_d;
-      fiom_q          <= fiom_d;
+      menvcfg_q       <= menvcfg_d;
+      henvcfg_q       <= henvcfg_d;
+      senvcfg_q        <= senvcfg_d;
+      mseccfg_q        <= mseccfg_d;
       dcache_q        <= dcache_d;
       icache_q        <= icache_d;
       // AIA
@@ -2887,6 +3028,9 @@ module csr_regfile
         senv_sse_q    <= senv_sse_d;
         menv_sse_q    <= menv_sse_d;
         henv_sse_q    <= henv_sse_d;
+        senv_lpe_q    <= senv_lpe_d;
+        menv_lpe_q    <= menv_lpe_d;
+        henv_lpe_q    <= henv_lpe_d;
         ss_testmode_q <= ss_testmode_d;
       end
       // supervisor mode registers
@@ -2949,6 +3093,10 @@ module csr_regfile
           pmpcfg_q[i]  <= '0;
           pmpaddr_q[i] <= '0;
         end
+      end
+      // Zicfilp
+      if (CVA6Cfg.ZiCfiLPEn) begin
+        elp_q <= elp_d;
       end
     end
   end

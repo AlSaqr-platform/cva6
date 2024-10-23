@@ -221,6 +221,8 @@ sources:
       # Note: depends on fpnew_pkg, above
       - core/fpu_wrap.sv
       - core/branch_unit.sv
+      - core/lpad_port.sv
+      - core/lpad_unit.sv
       - core/compressed_decoder.sv
       - core/controller.sv
       - core/csr_buffer.sv
