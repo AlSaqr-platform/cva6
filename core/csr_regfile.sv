@@ -818,6 +818,7 @@ module csr_regfile
                 csr_rdata = (vstopi_i == 0) ? '0 : 
                             (((vstopi_i-1) << 16) | AIA_CSR_DEF_PRIO);
             end
+        end
         riscv::CSR_MSECCFG: csr_rdata = mseccfg_q[riscv::XLEN-1:0];
         riscv::CSR_MSECCFGH: begin
           if (riscv::XLEN == 32) csr_rdata = '0;
@@ -1145,9 +1146,6 @@ module csr_regfile
     mtinst_d = mtinst_q;
     mtval2_d = mtval2_q;
     fiom_d = fiom_q;
-    menvcfg_d = menvcfg_q;
-    henvcfg_d = henvcfg_q;
-    senvcfg_d = senvcfg_q;
     mseccfg_d = mseccfg_q;
     dcache_d = dcache_q;
     icache_d = icache_q;
@@ -2527,14 +2525,14 @@ module csr_regfile
       if (CVA6Cfg.RVS) begin
         unique case (priv_lvl_q)
           riscv::PRIV_LVL_M: lpe_o = mseccfg_q.mlpe;
-          riscv::PRIV_LVL_S: lpe_o = menvcfg_q.lpe;
-          riscv::PRIV_LVL_U: lpe_o = senvcfg_q.lpe;
+          riscv::PRIV_LVL_S: lpe_o = menv_lpe_d;
+          riscv::PRIV_LVL_U: lpe_o = senv_lpe_d;
           default: lpe_o = 'b0;
         endcase
       end else begin
         unique case (priv_lvl_q)
           riscv::PRIV_LVL_M: lpe_o = mseccfg_q.mlpe;
-          riscv::PRIV_LVL_U: lpe_o = menvcfg_q.lpe;
+          riscv::PRIV_LVL_U: lpe_o = menv_lpe_d;
           default: lpe_o = 'b0;
         endcase
       end
@@ -2936,9 +2934,6 @@ module csr_regfile
       mtvt_q           <= {riscv::XLEN{1'b0}};
       mscratch_q       <= {riscv::XLEN{1'b0}};
       mtval_q          <= {riscv::XLEN{1'b0}};
-      menvcfg_q        <= 'b0;
-      henvcfg_q        <= 'b0;
-      senvcfg_q        <= 'b0;
       mseccfg_q        <= 'b0;
       dcache_q         <= {{riscv::XLEN - 1{1'b0}}, 1'b1};
       icache_q         <= {{riscv::XLEN - 1{1'b0}}, 1'b1};
@@ -3040,9 +3035,6 @@ module csr_regfile
       mtvt_q           <= mtvt_d;
       mscratch_q       <= mscratch_d;
       if (CVA6Cfg.TvalEn) mtval_q <= mtval_d;
-      menvcfg_q       <= menvcfg_d;
-      henvcfg_q       <= henvcfg_d;
-      senvcfg_q        <= senvcfg_d;
       mseccfg_q        <= mseccfg_d;
       dcache_q        <= dcache_d;
       icache_q        <= icache_d;
