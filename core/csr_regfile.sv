@@ -1144,6 +1144,7 @@ module csr_regfile
     mtval_d = mtval_q;
     mtinst_d = mtinst_q;
     mtval2_d = mtval2_q;
+    fiom_d = fiom_q;
     menvcfg_d = menvcfg_q;
     henvcfg_d = henvcfg_q;
     senvcfg_d = senvcfg_q;
