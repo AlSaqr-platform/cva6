@@ -399,11 +399,6 @@ module cva6
   // LP <-> COMMIT
   // --------------
   scoreboard_entry_t [CVA6ExtendCfg.NrCommitPorts-1:0] commit_instr_lp_commit;
-
-  // --------------
-  // ID <-> COMMIT
-  // --------------
-  scoreboard_entry_t [CVA6ExtendCfg.NrCommitPorts-1:0] commit_instr_id_commit;
   // --------------
   // ID <-> EX
   // --------------
@@ -1714,12 +1709,12 @@ module cva6
   for(genvar i=0;i<CVA6Cfg.NrCommitPorts;i++) begin
      always_comb begin
        ctr_valid[i]  = commit_ack[i];
-       ctr_instr[i]  = commit_instr_id_commit[i].opcode;
-       ctr_source[i] = commit_instr_id_commit[i].pc;
-       if (commit_instr_id_commit[i].ex.valid)
+       ctr_instr[i]  = commit_instr_id_lp[i].opcode;
+       ctr_source[i] = commit_instr_id_lp[i].pc;
+       if (commit_instr_id_lp[i].ex.valid)
          ctr_type[i]   = riscv::CTR_TYPE_EXC;
        else
-         ctr_type[i]   = commit_instr_id_commit[i].cftype;
+         ctr_type[i]   = commit_instr_id_lp[i].cftype;
      end
   end
 
