@@ -112,7 +112,7 @@ package config_pkg;
     bit                          RVU;
     // Address to jump when halt request
     logic [63:0]                 HaltAddress;
-    // Address to jump when exception 
+    // Address to jump when exception
     logic [63:0]                 ExceptionAddress;
     // Return address stack depth
     int unsigned                 RASDepth;
