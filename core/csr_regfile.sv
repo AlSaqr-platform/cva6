@@ -2525,14 +2525,14 @@ module csr_regfile
       if (CVA6Cfg.RVS) begin
         unique case (priv_lvl_q)
           riscv::PRIV_LVL_M: lpe_o = mseccfg_q.mlpe;
-          riscv::PRIV_LVL_S: lpe_o = menv_lpe_d;
-          riscv::PRIV_LVL_U: lpe_o = senv_lpe_d;
+          riscv::PRIV_LVL_S: lpe_o = menv_lpe_q;
+          riscv::PRIV_LVL_U: lpe_o = senv_lpe_q;
           default: lpe_o = 'b0;
         endcase
       end else begin
         unique case (priv_lvl_q)
           riscv::PRIV_LVL_M: lpe_o = mseccfg_q.mlpe;
-          riscv::PRIV_LVL_U: lpe_o = menv_lpe_d;
+          riscv::PRIV_LVL_U: lpe_o = menv_lpe_q;
           default: lpe_o = 'b0;
         endcase
       end
