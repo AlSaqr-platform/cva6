@@ -14,7 +14,7 @@ dependencies:
   fpnew: { git: "https://github.com/pulp-platform/cvfpu.git", rev: pulp-v0.1.1 }
   tech_cells_generic:
     { git: "https://github.com/pulp-platform/tech_cells_generic.git", version: 0.2.13 }
-  riscv-aia: { git: "git@github.com:AlSaqr-platform/riscv-aia.git", rev: "35f8bdb" }
+  riscv-aia: { git: "git@github.com:AlSaqr-platform/riscv-aia.git", rev: "9ab99c1" }
 
 frozen: false
 
@@ -221,6 +221,8 @@ sources:
       # Note: depends on fpnew_pkg, above
       - core/fpu_wrap.sv
       - core/branch_unit.sv
+      - core/lpad_port.sv
+      - core/lpad_unit.sv
       - core/compressed_decoder.sv
       - core/controller.sv
       - core/csr_buffer.sv

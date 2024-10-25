@@ -360,5 +360,11 @@ module alu
         default: ;  // default case to suppress unique warning
       endcase
     end
+    if (CVA6Cfg.ZiCfiLPEn) begin
+      unique case (fu_data_i.operation)
+        ZICFI_LPAD: result_o = fu_data_i.operand_b;
+        default: ;  // default case to suppress unique warning
+      endcase
+    end
   end
 endmodule

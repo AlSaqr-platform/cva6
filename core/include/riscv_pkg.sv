@@ -83,11 +83,11 @@ package riscv;
 
   typedef struct packed {
     logic sd;  // signal dirty state - read-only
-    //logic [62:34] wpri7;  // writes preserved reads ignored
-    logic [62:34] wpri6;  // writes preserved reads ignored
+    logic [62:34] wpri7;  // writes preserved reads ignored
     xlen_e uxl;  // variable user mode xlen - hardwired to zero
-    //logic spelp;  // hold previous ELP in S-mode
-    logic [11:0] wpri5;  // writes preserved reads ignored
+    logic [7:0] wpri6;  // writes preserved reads ignored
+    logic spelp;  // hold previous ELP in S-mode
+    logic [2:0] wpri5;  // writes preserved reads ignored
     logic mxr;  // make executable readable
     logic sum;  // permit supervisor user memory access
     logic wpri4;  // writes preserved reads ignored
@@ -125,17 +125,17 @@ package riscv;
 
   typedef struct packed {
     logic sd;  // signal dirty state - read-only
-    logic [62:40] wpri4;  // writes preserved reads ignored
-    //logic [62:42] wpri5;  // writes preserved reads ignored
-    //logic mpelp;  // hold previous ELP in M-mode
+    logic [62:42] wpri5;  // writes preserved reads ignored
+    logic mpelp;  // hold previous ELP in M-mode
+    logic wpri4;  // writes preserved reads ignored
     logic mpv;  // machine previous virtualization mode
     logic gva;  // variable set when trap writes to stval
     logic mbe;  // endianness memory accesses made from M-mode
     logic sbe;  // endianness memory accesses made from S-mode
     xlen_e sxl;  // variable supervisor mode xlen - hardwired to zero
     xlen_e uxl;  // variable user mode xlen - hardwired to zero
-    logic [8:0] wpri3;  // writes preserved reads ignored
-    //logic spelp; // hold previous ELP in S-mode 
+    logic [7:0] wpri3;  // writes preserved reads ignored
+    logic spelp;  // hold previous ELP in S-mode
     logic tsr;  // trap sret
     logic tw;  // time wait
     logic tvm;  // trap virtual memory
@@ -169,15 +169,26 @@ typedef struct packed {
   } mseccfg_t;
 
   typedef struct packed {
+    logic [63:11] wpri1;  // writes preserved reads ignored
+    logic         mlpe;   // enable Zicfilp in M-mode
+    logic         sseed;  // not implemented - requires Zkr extension
+    logic         useed;  // not implemented - requires Zkr extension
+    logic [7:3]   wpri0;  // writes preserved reads ignored
+    logic         rlb;    // not implemented - requires Smepmp extension
+    logic         mmwp;   // not implemented - requires Smepmp extension
+    logic         mml;    // not implemented - requires Smepmp extension
+  } seccfg_rv_t;
+
+  typedef struct packed {
     logic        stce;   // not implemented - requires Sctc extension
     logic        pbmte;  // not implemented - requires Svpbmt extension
     logic [61:8] wpri1;  // writes preserved reads ignored
     logic        cbze;   // not implemented - requires Zicboz extension
     logic        cbcfe;  // not implemented - requires Zicbom extension
     logic [1:0]  cbie;   // not implemented - requires Zicbom extension
-    logic [2:0]  wpri0;  // writes preserved reads ignored
     logic        sse;    // enable Zicfiss in less priviledged modes
     logic        lpe;    // enable Zicfilp in less priviledged modes
+    logic        wpri0;  // writes preserved reads ignored
     logic        fiom;   // fence of I/O implies memory
   } envcfg_rv_t;
 
@@ -601,12 +612,12 @@ typedef struct packed {
     CSR_MINSTRET         = 12'hB02,
     CSR_MINSTRETH        = 12'hB82,
     // Smaia and Ssaia
-    CSR_MISELECT        = 12'h350,                
-    CSR_MIREG           = 12'h351, 
+    CSR_MISELECT        = 12'h350,
+    CSR_MIREG           = 12'h351,
     CSR_MTOPIE          = 12'h35C,
     CSR_MTOPI           = 12'hFB0,
-    CSR_MVIEN           = 12'h308,            
-    CSR_MVIP            = 12'h309,            
+    CSR_MVIEN           = 12'h308,
+    CSR_MVIP            = 12'h309,
     CSR_STOPI           = 12'hDB0,
     CSR_SISELECT        = 12'h150,
     CSR_SIREG           = 12'h151,
@@ -812,6 +823,7 @@ typedef struct packed {
   localparam logic [63:0] MSTATUS_MPRV = 'h00020000;
   localparam logic [63:0] MSTATUS_SUM = 'h00040000;
   localparam logic [63:0] MSTATUS_MXR = 'h00080000;
+  localparam logic [63:0] MSTATUS_SPELP = 'h00800000;
   localparam logic [63:0] MSTATUS_TVM = 'h00100000;
   localparam logic [63:0] MSTATUS_TW = 'h00200000;
   localparam logic [63:0] MSTATUS_TSR = 'h00400000;
@@ -829,7 +841,23 @@ typedef struct packed {
   localparam logic [63:0] MENVCFG_PBMTE = 64'h4000000000000000;
   localparam logic [63:0] MENVCFG_STCE = 64'h8000000000000000;
 
+  // xENVCFG bit fields
+  localparam logic [63:0] ENVCFG_FIOM  = 64'h0000000000000001;
+  localparam logic [63:0] ENVCFG_LPE   = 64'h0000000000000004;
+  localparam logic [63:0] ENVCFG_SSE   = 64'h0000000000000008;
+  localparam logic [63:0] ENVCFG_CBIE  = 64'h0000000000000030;
+  localparam logic [63:0] ENVCFG_CBFE  = 64'h0000000000000040;
+  localparam logic [63:0] ENVCFG_CBZE  = 64'h0000000000000080;
+  localparam logic [63:0] ENVCFG_PBMTE = 64'h4000000000000000;
+  localparam logic [63:0] ENVCFG_STCE  = 64'h8000000000000000;
 
+  // xSECCFG bit fields
+  localparam logic [63:0] SECCFG_MML   = 64'h0000000000000001;
+  localparam logic [63:0] SECCFG_MMWP  = 64'h0000000000000002;
+  localparam logic [63:0] SECCFG_RLP   = 64'h0000000000000004;
+  localparam logic [63:0] SECCFG_USEED = 64'h0000000000000100;
+  localparam logic [63:0] SECCFG_SSEED = 64'h0000000000000200;
+  localparam logic [63:0] SECCFG_MLPE  = 64'h0000000000000400;
 
   typedef enum logic [2:0] {
     CSRRW  = 3'h1,
@@ -895,7 +923,7 @@ typedef struct packed {
   // -----
   typedef struct packed {
     logic [31:28] xdebugver;
-    logic [27:18] zero2;
+    logic [27:19] zero2;
     logic         pelp;
     logic         ebreakvs;
     logic         ebreakvu;

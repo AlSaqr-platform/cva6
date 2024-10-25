@@ -144,6 +144,7 @@ package ariane_pkg;
                                                    | riscv::SSTATUS_XS
                                                    | riscv::SSTATUS_SUM
                                                    | riscv::SSTATUS_MXR
+                                                   | riscv::SSTATUS_SPELP
                                                    | riscv::SSTATUS_UPIE
                                                    | riscv::SSTATUS_SPIE
                                                    | riscv::SSTATUS_UXL
@@ -151,6 +152,7 @@ package ariane_pkg;
 
   localparam logic [63:0] SMODE_STATUS_WRITE_MASK = riscv::SSTATUS_SIE
                                                     | riscv::SSTATUS_SPIE
+                                                    | riscv::SSTATUS_SPELP
                                                     | riscv::SSTATUS_SPP
                                                     | riscv::SSTATUS_FS
                                                     | riscv::SSTATUS_SUM
@@ -614,7 +616,9 @@ package ariane_pkg;
     ACCEL_OP_STORE,
     // Zicond instruction
     CZERO_EQZ,
-    CZERO_NEZ
+    CZERO_NEZ,
+    // Zicfi instruction
+    ZICFI_LPAD
   } fu_op;
 
   typedef struct packed {
@@ -782,6 +786,7 @@ package ariane_pkg;
   // ---------------
   // Ctr strucutres
   // ---------------
+
   typedef struct packed {
      riscv::xlen_t        ctr_source;
      riscv::ctr_type_t    ctr_type;
@@ -794,6 +799,21 @@ package ariane_pkg;
      ctr_commit_port_t port_1;
      ctr_commit_port_t port_2;
   } ctr_scoreboard_t ;
+
+  // ---------------
+  // Landing Pad Unit
+  // ---------------
+
+  typedef enum logic {
+    NO_LPAD_EXPECTED = 1'b0,
+    LPAD_EXPECTED = 1'b1
+  } elp_t;
+
+  localparam LPAD_LABEL_BITS = 20;
+  typedef logic [LPAD_LABEL_BITS-1:0] lpl_t;
+
+  localparam logic [riscv::XLEN-1:0] LPAD_EXCEPTION_CAUSE = 18;
+  localparam logic [riscv::XLEN-1:0] LPAD_EXCEPTION_TVAL = 2;
 
   // ---------------
   // MMU instanciation

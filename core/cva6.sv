@@ -392,9 +392,13 @@ module cva6
   // ACCEL Commit
   logic acc_valid_acc_ex;
   // --------------
-  // ID <-> COMMIT
+  // ID <-> LP
   // --------------
-  scoreboard_entry_t [CVA6ExtendCfg.NrCommitPorts-1:0] commit_instr_id_commit;
+  scoreboard_entry_t [CVA6ExtendCfg.NrCommitPorts-1:0] commit_instr_id_lp;
+  // --------------
+  // LP <-> COMMIT
+  // --------------
+  scoreboard_entry_t [CVA6ExtendCfg.NrCommitPorts-1:0] commit_instr_lp_commit;
   // --------------
   // ID <-> EX
   // --------------
@@ -465,14 +469,21 @@ module cva6
   riscv::pmpcfg_t [15:0] pmpcfg;
   logic [15:0][riscv::PLEN-3:0] pmpaddr;
   logic [31:0] mcountinhibit_csr_perf;
+
   logic [riscv::XLEN-1:0]   mtopi;
   logic [riscv::XLEN-1:0]   stopi;
   logic [riscv::XLEN-1:0]   vstopi;
+
   riscv::xlen_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_commit_ctr;
   riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_commit_ctr;
   logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_commit_ctr;
+
   logic menv_sse, henv_sse, senv_sse;
   logic ss_testmode;
+
+  logic lpe_csr_lp;
+  elp_t elp_csr_lp;
+  elp_t elp_lp_csr;
 
   // ----------------------------
   // Performance Counters <-> *
@@ -780,7 +791,7 @@ module cva6
       .wdata_i              (wdata_commit_id),
       .we_gpr_i             (we_gpr_commit_id),
       .we_fpr_i             (we_fpr_commit_id),
-      .commit_instr_o       (commit_instr_id_commit),
+      .commit_instr_o       (commit_instr_id_lp),
       .commit_ack_i         (commit_ack),
       // Performance Counters
       .stall_issue_o        (stall_issue),
@@ -918,6 +929,27 @@ module cva6
       .xsse_i                  (xsse)
   );
 
+
+  // ------------
+  // Landing Pad
+  // ------------
+
+  if (CVA6Cfg.ZiCfiLPEn) begin : gen_landingpad_ports
+    lpad_unit #(
+      .CVA6Cfg(CVA6ExtendCfg)
+    ) lpad_unit_i (
+      .clk_i          ( clk_i                  ),
+      .rst_ni         ( rst_uarch_n            ),
+      .lpe_i          ( lpe_csr_lp             ),
+      .elp_i          ( elp_csr_lp             ),
+      .commit_instr_i ( commit_instr_id_lp     ),
+      .elp_o          ( elp_lp_csr             ),
+      .commit_instr_o ( commit_instr_lp_commit )
+    );
+  end else begin
+    assign commit_instr_lp_commit = commit_instr_id_lp;
+  end
+
   // ---------
   // Commit
   // ---------
@@ -936,7 +968,7 @@ module cva6
       .exception_o       (ex_commit),
       .dirty_fp_state_o  (dirty_fp_state),
       .single_step_i     (single_step_csr_commit),
-      .commit_instr_i    (commit_instr_id_commit),
+      .commit_instr_i    (commit_instr_lp_commit),
       .commit_ack_o      (commit_ack),
       .no_st_pending_i   (no_st_pending_commit),
       .waddr_o           (waddr_commit_id),
@@ -979,7 +1011,7 @@ module cva6
   ) csr_regfile_i (
       .flush_o                 (flush_csr_ctrl),
       .halt_csr_o              (halt_csr_ctrl),
-      .commit_instr_i          (commit_instr_id_commit),
+      .commit_instr_i          (commit_instr_lp_commit),
       .commit_ack_i            (commit_ack),
       .boot_addr_i             (boot_addr_i[riscv::VLEN-1:0]),
       .hart_id_i               (hart_id_i[riscv::XLEN-1:0]),
@@ -1055,6 +1087,9 @@ module cva6
       .perf_we_o               (we_csr_perf),
       .pmpcfg_o                (pmpcfg),
       .pmpaddr_o               (pmpaddr),
+      .lpe_o                   (lpe_csr_lp),
+      .elp_i                   (elp_lp_csr),
+      .elp_o                   (elp_csr_lp),
       .mcountinhibit_o         (mcountinhibit_csr_perf),
       .menv_sse_o              (menv_sse),
       .henv_sse_o              (henv_sse),
@@ -1083,7 +1118,7 @@ module cva6
         .we_i          (we_csr_perf),
         .data_i        (data_csr_perf),
         .data_o        (data_perf_csr),
-        .commit_instr_i(commit_instr_id_commit),
+        .commit_instr_i(commit_instr_lp_commit),
         .commit_ack_i  (commit_ack),
 
         .l1_icache_miss_i   (icache_miss_cache_perf),
@@ -1386,7 +1421,7 @@ module cva6
         .issue_instr_hs_i      (issue_instr_hs_id_acc),
         .issue_stall_o         (stall_acc_id),
         .fu_data_i             (fu_data_id_ex),
-        .commit_instr_i        (commit_instr_id_commit),
+        .commit_instr_i        (commit_instr_lp_commit),
         .commit_st_barrier_i   (fence_i_commit_controller | fence_commit_controller),
         .acc_trans_id_o        (acc_trans_id_ex_id),
         .acc_result_o          (acc_result_ex_id),
@@ -1500,8 +1535,8 @@ module cva6
         .full_o    (),
         .empty_o   (pc_empty[i]),
         .usage_o   (),
-        .data_i    (commit_instr_id_commit[i].pc),
-        .push_i    (commit_ack[i] & ~commit_instr_id_commit[i].ex.valid),
+        .data_i    (commit_instr_lp_commit[i].pc),
+        .push_i    (commit_ack[i] & ~commit_instr_lp_commit[i].ex.valid),
         .data_o    (pc_data[i]),
         .pop_i     (pc_pop[i])
     );
@@ -1545,7 +1580,7 @@ module cva6
   assign tracer_if.we_gpr         = we_gpr_commit_id;
   assign tracer_if.we_fpr         = we_fpr_commit_id;
   // commit
-  assign tracer_if.commit_instr   = commit_instr_id_commit;
+  assign tracer_if.commit_instr   = commit_instr_lp_commit;
   assign tracer_if.commit_ack     = commit_ack;
   // branch predict
   assign tracer_if.resolve_branch = resolved_branch;
@@ -1595,22 +1630,22 @@ module cva6
         endcase
       end
       for (int i = 0; i < CVA6ExtendCfg.NrCommitPorts; i++) begin
-        if (commit_ack[i] && !commit_instr_id_commit[i].ex.valid) begin
-          $fwrite(f, "%d 0x%0h %s (0x%h) DASM(%h)\n", cycles, commit_instr_id_commit[i].pc, mode,
-                  commit_instr_id_commit[i].ex.tval[31:0], commit_instr_id_commit[i].ex.tval[31:0]);
-        end else if (commit_ack[i] && commit_instr_id_commit[i].ex.valid) begin
-          if (commit_instr_id_commit[i].ex.cause == 2) begin
+        if (commit_ack[i] && !commit_instr_lp_commit[i].ex.valid) begin
+          $fwrite(f, "%d 0x%0h %s (0x%h) DASM(%h)\n", cycles, commit_instr_lp_commit[i].pc, mode,
+                  commit_instr_lp_commit[i].ex.tval[31:0], commit_instr_lp_commit[i].ex.tval[31:0]);
+        end else if (commit_ack[i] && commit_instr_lp_commit[i].ex.valid) begin
+          if (commit_instr_lp_commit[i].ex.cause == 2) begin
             $fwrite(f, "Exception Cause: Illegal Instructions, DASM(%h) PC=%h\n",
-                    commit_instr_id_commit[i].ex.tval[31:0], commit_instr_id_commit[i].pc);
+                    commit_instr_lp_commit[i].ex.tval[31:0], commit_instr_lp_commit[i].pc);
           end else begin
             if (CVA6Cfg.DebugEn && debug_mode) begin
-              $fwrite(f, "%d 0x%0h %s (0x%h) DASM(%h)\n", cycles, commit_instr_id_commit[i].pc,
-                      mode, commit_instr_id_commit[i].ex.tval[31:0],
-                      commit_instr_id_commit[i].ex.tval[31:0]);
+              $fwrite(f, "%d 0x%0h %s (0x%h) DASM(%h)\n", cycles, commit_instr_lp_commit[i].pc,
+                      mode, commit_instr_lp_commit[i].ex.tval[31:0],
+                      commit_instr_lp_commit[i].ex.tval[31:0]);
             end else begin
               $fwrite(f, "Exception Cause: %5d, DASM(%h) PC=%h\n",
-                      commit_instr_id_commit[i].ex.cause, commit_instr_id_commit[i].ex.tval[31:0],
-                      commit_instr_id_commit[i].pc);
+                      commit_instr_lp_commit[i].ex.cause, commit_instr_lp_commit[i].ex.tval[31:0],
+                      commit_instr_lp_commit[i].pc);
             end
           end
         end
@@ -1649,7 +1684,7 @@ module cva6
         .rs1_forwarding_i(rs1_forwarding_id_ex),
         .rs2_forwarding_i(rs2_forwarding_id_ex),
 
-        .commit_instr_i(commit_instr_id_commit),
+        .commit_instr_i(commit_instr_lp_commit),
         .ex_commit_i   (ex_commit),
         .priv_lvl_i    (priv_lvl),
 
@@ -1674,12 +1709,12 @@ module cva6
   for(genvar i=0;i<CVA6Cfg.NrCommitPorts;i++) begin
      always_comb begin
        ctr_valid[i]  = commit_ack[i];
-       ctr_instr[i]  = commit_instr_id_commit[i].opcode;
-       ctr_source[i] = commit_instr_id_commit[i].pc;
-       if (commit_instr_id_commit[i].ex.valid)
+       ctr_instr[i]  = commit_instr_id_lp[i].opcode;
+       ctr_source[i] = commit_instr_id_lp[i].pc;
+       if (commit_instr_id_lp[i].ex.valid)
          ctr_type[i]   = riscv::CTR_TYPE_EXC;
        else
-         ctr_type[i]   = commit_instr_id_commit[i].cftype;
+         ctr_type[i]   = commit_instr_id_lp[i].cftype;
      end
   end
 
