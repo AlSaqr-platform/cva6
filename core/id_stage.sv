@@ -36,7 +36,7 @@ module id_stage #(
     input  riscv::xs_t                    fs_i,                // floating point extension status
     input  riscv::xs_t                    vfs_i,               // floating point extension virtual status
     input  logic [2:0]                    frm_i,               // floating-point dynamic rounding mode
-    input  logic [1:0]                    irq_i,
+    input  logic [ariane_pkg::NrIntpFiles-1:0] irq_i,          // level sensitive IR lines, mip & sip & vsip (async)
     input  ariane_pkg::irq_ctrl_t         irq_ctrl_i,
     // from CLIC Controller
     input  logic                          clic_mode_i,
@@ -47,7 +47,10 @@ module id_stage #(
     input  logic                          tw_i,
     input  logic                          vtw_i,
     input  logic                          tsr_i,
-    input  logic                          hu_i                 // hypervisor user mode
+    input  logic                          hu_i,                // hypervisor user mode
+    output logic [riscv::XLEN-1:0]        mtopi_o,
+    output logic [riscv::XLEN-1:0]        stopi_o,
+    output logic [riscv::XLEN-1:0]        vstopi_o
 );
     // ID/ISSUE register stage
     typedef struct packed {
@@ -109,8 +112,11 @@ module id_stage #(
         .vtw_i,
         .tsr_i,
         .hu_i,
-        .instruction_o           ( decoded_instruction          ),
-        .is_control_flow_instr_o ( is_control_flow_instr        )
+        .instruction_o           ( decoded_instruction             ),
+        .is_control_flow_instr_o ( is_control_flow_instr           ),
+        .mtopi_o                 ( mtopi_o                         ),
+        .stopi_o                 ( stopi_o                         ),
+        .vstopi_o                ( vstopi_o                        )
     );
 
     // ------------------
