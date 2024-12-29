@@ -74,6 +74,16 @@ module id_stage #(
     input logic vtw_i,
     // Trap sret - CSR_REGFILE
     input logic tsr_i,
+    // MENV Shadow Stack enable - CSR_REGFILE
+    input logic menv_sse_i,
+    // HENV Shadow Stack enable - CSR_REGFILE
+    input logic henv_sse_i,
+    // SENV Shadow Stack enable - CSR_REGFILE
+    input logic senv_sse_i,
+    // Shadow Stack enabled state - EX_STAGE
+    output logic xsse_o,
+    // Shadow stack test mode - CSR_REGFILE
+    input logic ss_testmode_i,
     // Hypervisor user mode - CSR_REGFILE
     input logic hu_i
 );

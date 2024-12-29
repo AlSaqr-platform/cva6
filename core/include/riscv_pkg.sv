@@ -602,6 +602,8 @@ typedef struct packed {
     CSR_PMPADDR13        = 12'h3BD,
     CSR_PMPADDR14        = 12'h3BE,
     CSR_PMPADDR15        = 12'h3BF,
+    CSR_MSECCFG          = 12'h747,
+    CSR_MSECCFGH         = 12'h757,
     CSR_MVENDORID        = 12'hF11,
     CSR_MARCHID          = 12'hF12,
     CSR_MIMPID           = 12'hF13,

@@ -466,6 +466,14 @@ module cva6
   riscv::pmpcfg_t [15:0] pmpcfg;
   logic [15:0][riscv::PLEN-3:0] pmpaddr;
   logic [31:0] mcountinhibit_csr_perf;
+  riscv::xlen_t [CVA6Cfg.NrCommitPorts-1:0] ctr_source_commit_ctr;
+  riscv::ctr_type_t [CVA6Cfg.NrCommitPorts-1:0] ctr_type_commit_ctr;
+  logic [CVA6Cfg.NrCommitPorts-1:0] ctr_valid_commit_ctr;
+  logic menv_sse, henv_sse, senv_sse;
+  logic ss_testmode;
+  logic lpe_csr_lp;
+  elp_t elp_csr_lp;
+  elp_t elp_lp_csr;
   // ----------------------------
   // Performance Counters <-> *
   // ----------------------------
@@ -631,6 +639,11 @@ module cva6
       .tw_i            (tw_csr_id),
       .vtw_i           (vtw_csr_id),
       .tsr_i           (tsr_csr_id),
+      .menv_sse_i      (menv_sse),
+      .henv_sse_i      (henv_sse),
+      .senv_sse_i      (senv_sse),
+      .xsse_o          (xsse),
+      .ss_testmode_i   (ss_testmode),
       .hu_i            (hu)
   );
 
