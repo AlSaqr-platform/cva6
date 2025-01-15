@@ -55,7 +55,7 @@ module id_stage #(
     // Vector extension status - CSR_REGFILE
     input riscv::xs_t vs_i,
     // Level sensitive (async) interrupts - SUBSYSTEM
-    input logic [ariane_pkg::NrIntpFiles-1:0] irq_i,
+    input logic [1:0] irq_i,
     // Interrupt control status - CSR_REGFILE
     input ariane_pkg::irq_ctrl_t irq_ctrl_i,
     // TO_BE_COMPLETED - CLIC_CTRL
@@ -74,11 +74,6 @@ module id_stage #(
     input logic vtw_i,
     // Trap sret - CSR_REGFILE
     input logic tsr_i,
-    // Hypervisor user mode - CSR_REGFILE
-    input  logic hu_i,
-    output logic [riscv::XLEN-1:0] mtopi_o,
-    output logic [riscv::XLEN-1:0] stopi_o,
-    output logic [riscv::XLEN-1:0] vstopi_o,
     // MENV Shadow Stack enable - CSR_REGFILE
     input logic menv_sse_i,
     // HENV Shadow Stack enable - CSR_REGFILE
@@ -88,7 +83,9 @@ module id_stage #(
     // Shadow Stack enabled state - EX_STAGE
     output logic xsse_o,
     // Shadow stack test mode - CSR_REGFILE
-    input logic ss_testmode_i
+    input logic ss_testmode_i,
+    // Hypervisor user mode - CSR_REGFILE
+    input logic hu_i
 );
   // ID/ISSUE register stage
   typedef struct packed {
@@ -177,10 +174,7 @@ module id_stage #(
       .henv_sse_i,
       .instruction_o          (decoded_instruction),
       .orig_instr_o           (orig_instr),
-      .is_control_flow_instr_o(is_control_flow_instr),
-      .mtopi_o                (mtopi_o),
-      .stopi_o                (stopi_o),
-      .vstopi_o               (vstopi_o)
+      .is_control_flow_instr_o(is_control_flow_instr)
   );
 
   // ------------------

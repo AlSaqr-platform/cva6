@@ -602,6 +602,8 @@ typedef struct packed {
     CSR_PMPADDR13        = 12'h3BD,
     CSR_PMPADDR14        = 12'h3BE,
     CSR_PMPADDR15        = 12'h3BF,
+    CSR_MSECCFG          = 12'h747,
+    CSR_MSECCFGH         = 12'h757,
     CSR_MVENDORID        = 12'hF11,
     CSR_MARCHID          = 12'hF12,
     CSR_MIMPID           = 12'hF13,
@@ -611,27 +613,6 @@ typedef struct packed {
     CSR_MCYCLEH          = 12'hB80,
     CSR_MINSTRET         = 12'hB02,
     CSR_MINSTRETH        = 12'hB82,
-    // Smaia and Ssaia
-    CSR_MISELECT        = 12'h350,
-    CSR_MIREG           = 12'h351,
-    CSR_MTOPIE          = 12'h35C,
-    CSR_MTOPI           = 12'hFB0,
-    CSR_MVIEN           = 12'h308,
-    CSR_MVIP            = 12'h309,
-    CSR_STOPI           = 12'hDB0,
-    CSR_SISELECT        = 12'h150,
-    CSR_SIREG           = 12'h151,
-    CSR_STOPIE          = 12'h15C,
-    CSR_HVIEN           = 12'h608,
-    CSR_HVICTL          = 12'h609,
-    CSR_HVIPRIO1        = 12'h646,
-    CSR_HVIPRIO2        = 12'h647,
-    CSR_VSISELECT       = 12'h250,
-    CSR_VSIREG          = 12'h251,
-    CSR_VSTOPEI         = 12'h25C,
-    CSR_VSTOPI          = 12'hEB0,
-    CSR_MSECCFG         = 12'h747,
-    CSR_MSECCFGH        = 12'h757,
     //Performance Counters
     CSR_MHPM_COUNTER_3   = 12'hB03,
     CSR_MHPM_COUNTER_4   = 12'hB04,
@@ -1073,7 +1054,7 @@ typedef struct packed {
     csr_t ret;
     ret = csr_addr;
     unique case (csr_addr.address) inside
-      [CSR_SSTATUS : CSR_STVEC], [CSR_SSCRATCH : CSR_SATP], CSR_STOPI: begin
+      [CSR_SSTATUS : CSR_STVEC], [CSR_SSCRATCH : CSR_SATP]: begin
         if (v) begin
           ret.csr_decode.priv_lvl = PRIV_LVL_HS;
         end
