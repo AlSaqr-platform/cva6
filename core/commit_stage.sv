@@ -54,7 +54,13 @@ module commit_stage import ariane_pkg::*; #(
     output logic                                    flush_commit_o,     // request a pipeline flush
     output logic                                    sfence_vma_o,       // flush TLBs and pipeline
     output logic                                    hfence_vvma_o,      // flush TLBs and pipeline
-    output logic                                    hfence_gvma_o       // flush TLBs and pipeline
+    output logic                                    hfence_gvma_o,      // flush TLBs and pipeline
+    // Control transfer records PC - CTR_UNIT
+    output riscv::xlen_t [NR_COMMIT_PORTS-1:0]      ctr_source_o,
+    // Control transfer records type - CTR_UNIT
+    output riscv::ctr_type_t [NR_COMMIT_PORTS-1:0]  ctr_type_o,
+    // Control transfer records valid - CTR_UNIT
+    output logic [NR_COMMIT_PORTS-1:0]              ctr_valid_o
 );
 
 // ila_0 i_ila_commit (

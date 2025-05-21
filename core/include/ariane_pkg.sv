@@ -465,6 +465,22 @@ package ariane_pkg;
     } irq_ctrl_t;
 
     // ---------------
+    // Ctr strucutres
+    // ---------------
+    typedef struct packed {
+       riscv::xlen_t        ctr_source;
+       riscv::ctr_type_t    ctr_type;
+       logic [31:0]         ctr_instr;
+       riscv::priv_lvl_t    priv_lvl;
+       logic                valid;
+    } ctr_commit_port_t;
+
+    typedef struct packed {
+       ctr_commit_port_t port_1;
+       ctr_commit_port_t port_2;
+    } ctr_scoreboard_t ;
+
+    // ---------------
     // Cache config
     // ---------------
 
@@ -758,6 +774,8 @@ package ariane_pkg;
         logic [(riscv::XLEN/8)-1:0] lsu_rmask;   // information needed by RVFI
         logic [(riscv::XLEN/8)-1:0] lsu_wmask;   // information needed by RVFI
         riscv::xlen_t               lsu_wdata;   // information needed by RVFI
+        riscv::ctr_type_t           cftype;      // 4-bit control transfer type, encoded according to the RISC-V Control Transfer Records extension.
+//        logic [31:0]                opcode;
     } scoreboard_entry_t;
 
     // ---------------
