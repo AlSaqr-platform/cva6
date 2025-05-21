@@ -196,6 +196,8 @@ sources:
       - core/store_unit.sv
       - core/commit_stage.sv
       - core/axi_shim.sv
+      - core/fifo_dp_v3.sv
+      - core/ctr_unit.sv
 
       # What is "frontend"?
       - core/frontend/btb.sv

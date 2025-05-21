@@ -55,7 +55,17 @@ module cva6 import ariane_pkg::*; #(
   input  wt_cache_pkg::l15_rtrn_t      l15_rtrn_i,
   // memory side, AXI Master
   output axi_req_t                     axi_req_o,
-  input  axi_rsp_t                     axi_resp_i
+  input  axi_rsp_t                     axi_resp_i,
+  // Control Transfer Records source register - CTR_UNIT
+  output riscv::ctrsource_rv_t         emitter_source_o,
+  // Control Transfer Records target register - CTR_UNIT
+  output riscv::ctrtarget_rv_t         emitter_target_o,
+  // Control Transfer Records data register - CTR_UNIT
+  output riscv::ctr_type_t             emitter_data_o,
+  // Control Transfer Records instr register - CTR_UNIT
+  output logic [31:0]                  emitter_instr_o,
+  // Privilege execution level - CTR_UNIT
+  output riscv::priv_lvl_t             priv_lvl_o
 );
 
   // ------------------------------------------
@@ -293,6 +303,20 @@ module cva6 import ariane_pkg::*; #(
   logic [(riscv::XLEN/8)-1:0]           lsu_rmask;
   logic [(riscv::XLEN/8)-1:0]           lsu_wmask;
   logic [ariane_pkg::TRANS_ID_BITS-1:0] lsu_addr_trans_id;
+
+  // ------------------------
+  // Control Transfer Signals
+  // ------------------------
+  riscv::xlen_t [NR_COMMIT_PORTS-1:0]     ctr_source_commit_ctr;
+  riscv::ctr_type_t [NR_COMMIT_PORTS-1:0] ctr_type_commit_ctr;
+  logic [NR_COMMIT_PORTS-1:0]             ctr_valid_commit_ctr;
+
+  logic [NR_COMMIT_PORTS-1:0]                 ctr_valid;
+  logic [NR_COMMIT_PORTS-1:0] [31:0]          ctr_instr;
+  riscv::ctrsource_rv_t [NR_COMMIT_PORTS-1:0] ctr_source;
+  riscv::ctr_type_t [NR_COMMIT_PORTS-1:0]     ctr_type;
+
+  ctr_commit_port_t ctr_commit_port_1, ctr_commit_port_2;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (~rst_ni) begin
@@ -631,6 +655,9 @@ module cva6 import ariane_pkg::*; #(
     .hfence_vvma_o          ( hfence_vvma_commit_controller ),
     .hfence_gvma_o          ( hfence_gvma_commit_controller ),
     .flush_commit_o         ( flush_commit                  ),
+    .ctr_source_o           ( ctr_source_commit_ctr         ),
+    .ctr_type_o             ( ctr_type_commit_ctr           ),
+    .ctr_valid_o            ( ctr_valid_commit_ctr          ),
     .*
   );
 
@@ -1146,5 +1173,45 @@ module cva6 import ariane_pkg::*; #(
       end
     end
   end
+ // ------------------------
+  // Control Transfer Records
+  // ------------------------
+  // Handle data interface to be the control transfer records unit
+
+  for(genvar i=0;i<NR_COMMIT_PORTS;i++) begin
+     always_comb begin
+       ctr_valid[i]  = commit_ack[i];
+       ctr_instr[i]  = commit_instr_id_commit[i].ex.tval[31:0];
+       ctr_source[i] = commit_instr_id_commit[i].pc;
+       if (commit_instr_id_commit[i].ex.valid)
+         ctr_type[i]   = riscv::CTR_TYPE_EXC;
+       else
+         ctr_type[i]   = commit_instr_id_commit[i].cftype;
+     end
+  end
+
+  assign ctr_commit_port_1 = {
+     ctr_source: ctr_source[0],
+     ctr_type  : ctr_type[0],
+     ctr_instr : ctr_instr[0],
+     priv_lvl  : priv_lvl,
+     valid     : ctr_valid[0]
+  };
+
+  assign ctr_commit_port_2 = {
+     ctr_source: ctr_source[1],
+     ctr_type  : ctr_type[1],
+     ctr_instr : ctr_instr[1],
+     priv_lvl  : priv_lvl,
+     valid     : ctr_valid[1]
+  };
+
+  ctr_unit  i_ctr_unit (
+      .clk_i               ( clk_i             ),
+      .rst_ni              ( rst_ni            ),
+      .ctr_commit_port_1_i ( ctr_commit_port_1 ),
+      .ctr_commit_port_2_i ( ctr_commit_port_2 ),
+      .*
+  );
 
 endmodule // ariane
